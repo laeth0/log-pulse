@@ -1,0 +1,6 @@
+dist
+node_modules
+coverage
+
+# Preserve already-applied migration files byte-for-byte.
+src/migrations/
