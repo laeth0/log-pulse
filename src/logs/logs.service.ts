@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -13,20 +12,17 @@ import {
   LOG_AGGREGATE_INTERVALS,
   LOG_AGGREGATE_ORIGIN,
 } from '../common/const/log-aggregate.const';
-import { IngestLogsDto } from './dto/ingest-logs.dto';
 import { IngestLogsResponseDto } from './dto/ingest-logs-response.dto';
 import { LogAggregateBucketDto } from './dto/log-aggregate-bucket.dto';
 import { LogAggregateResponseDto } from './dto/log-aggregate-response.dto';
 import { LogResponseDto } from './dto/log-response.dto';
 import { QueryLogsResponseDto } from './dto/query-logs-response.dto';
-import { RejectedLogDto } from './dto/rejected-log.dto';
 import { Log } from './entities/log.entity';
-import { LogEntryValidator } from './log-entry.validator';
 import { LogAggregateQuery } from './models/log-aggregate-query';
 import { LogAggregateRow } from './models/log-aggregate-row';
-import { LogEntry } from './models/log-entry';
 import { LogFilters } from './models/log-filters';
 import { LogQuery } from './models/log-query';
+import { ValidatedIngestLogs } from './models/validated-ingest-logs';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 
 /** Executes log ingestion, listing, and PostgreSQL-side aggregation. */
@@ -37,43 +33,18 @@ export class LogsService {
   constructor(
     @InjectRepository(Log)
     private readonly logRepository: Repository<Log>,
-    private readonly logEntryValidator: LogEntryValidator,
     private readonly logQueryCursorCodec: LogQueryCursorCodec,
   ) {}
 
   async ingestLogs(
-    ingestionRequest: IngestLogsDto,
+    ingestionRequest: ValidatedIngestLogs,
   ): Promise<IngestLogsResponseDto> {
-    const acceptedLogs: LogEntry[] = [];
-    const rejectedLogs: RejectedLogDto[] = [];
+    await this.persistLogs(ingestionRequest.logs);
 
-    ingestionRequest.logs.forEach(
-      (rawLogEntry: unknown, entryIndex: number): void => {
-        const validationResult = this.logEntryValidator.validate(rawLogEntry);
-
-        if (validationResult.isValid) {
-          acceptedLogs.push(validationResult.log);
-          return;
-        }
-
-        rejectedLogs.push({
-          index: entryIndex,
-          reason: validationResult.reason,
-        });
-      },
-    );
-
-    const ingestionResponse: IngestLogsResponseDto = {
-      accepted: acceptedLogs.length,
-      rejected: rejectedLogs,
+    return {
+      accepted: ingestionRequest.logs.length,
+      rejected: ingestionRequest.rejected,
     };
-
-    if (acceptedLogs.length === 0) {
-      throw new BadRequestException(ingestionResponse);
-    }
-
-    await this.persistLogs(acceptedLogs);
-    return ingestionResponse;
   }
 
   async queryLogs(logQuery: LogQuery): Promise<QueryLogsResponseDto> {

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 
 import {
   LOG_AGGREGATE_BUCKET_SCHEMA,
@@ -13,12 +13,19 @@ import { LogFilterParser } from './log-filter.parser';
 
 /** Validates aggregation-specific parameters and shared log filters. */
 @Injectable()
-export class LogAggregateQueryParser {
+export class LogAggregateQueryParser implements PipeTransform<
+  Readonly<Record<string, unknown>>,
+  LogAggregateQuery
+> {
   constructor(private readonly logFilterParser: LogFilterParser) {}
 
-  parse(
+  transform(
     rawQueryParameters: Readonly<Record<string, unknown>>,
   ): LogAggregateQuery {
+    this.logFilterParser.assertKnownParameters(rawQueryParameters, [
+      'bucket',
+      'group_by',
+    ]);
     const logFilters = this.logFilterParser.parse(rawQueryParameters);
     const rangeStart = logFilters.since;
     const rangeEnd = logFilters.until;

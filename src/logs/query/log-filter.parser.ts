@@ -11,6 +11,33 @@ import { LogFilters } from '../models/log-filters';
 /** Parses filters shared by log listing and aggregation endpoints. */
 @Injectable()
 export class LogFilterParser {
+  private readonly sharedParameterNames = new Set([
+    'service',
+    'level',
+    'since',
+    'until',
+    'q',
+  ]);
+
+  assertKnownParameters(
+    rawQueryParameters: Readonly<Record<string, unknown>>,
+    endpointParameterNames: readonly string[],
+  ): void {
+    const allowedParameterNames = new Set([
+      ...this.sharedParameterNames,
+      ...endpointParameterNames,
+    ]);
+
+    for (const parameterName of Object.keys(rawQueryParameters)) {
+      if (
+        !allowedParameterNames.has(parameterName) &&
+        !parameterName.startsWith(LOG_ATTRIBUTE_QUERY_PREFIX)
+      ) {
+        this.reject(`unknown query parameter: '${parameterName}'`);
+      }
+    }
+  }
+
   parse(rawQueryParameters: Readonly<Record<string, unknown>>): LogFilters {
     const serviceName = this.readOptionalString(rawQueryParameters, 'service');
     const logLevel = this.parseLevel(rawQueryParameters.level);

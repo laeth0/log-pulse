@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 
 import {
   DEFAULT_LOG_QUERY_LIMIT,
@@ -11,13 +11,20 @@ import { LogQueryCursorCodec } from './log-query-cursor.codec';
 
 /** Converts untrusted HTTP query parameters into a validated application query. */
 @Injectable()
-export class LogQueryParser {
+export class LogQueryParser implements PipeTransform<
+  Readonly<Record<string, unknown>>,
+  LogQuery
+> {
   constructor(
     private readonly logFilterParser: LogFilterParser,
     private readonly logQueryCursorCodec: LogQueryCursorCodec,
   ) {}
 
-  parse(rawQueryParameters: Readonly<Record<string, unknown>>): LogQuery {
+  transform(rawQueryParameters: Readonly<Record<string, unknown>>): LogQuery {
+    this.logFilterParser.assertKnownParameters(rawQueryParameters, [
+      'limit',
+      'cursor',
+    ]);
     const logFilters = this.logFilterParser.parse(rawQueryParameters);
     const resultLimit = this.parseLimit(rawQueryParameters.limit);
     const paginationCursor = this.parseCursor(rawQueryParameters.cursor);

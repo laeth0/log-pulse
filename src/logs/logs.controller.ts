@@ -16,22 +16,21 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { IngestLogsDto } from './dto/ingest-logs.dto';
 import { IngestLogsResponseDto } from './dto/ingest-logs-response.dto';
 import { LogAggregateResponseDto } from './dto/log-aggregate-response.dto';
 import { QueryLogsResponseDto } from './dto/query-logs-response.dto';
+import { LogEntryValidator } from './log-entry.validator';
 import { LogsService } from './logs.service';
+import { LogAggregateQuery } from './models/log-aggregate-query';
+import { LogQuery } from './models/log-query';
+import { ValidatedIngestLogs } from './models/validated-ingest-logs';
 import { LogAggregateQueryParser } from './query/log-aggregate-query.parser';
 import { LogQueryParser } from './query/log-query.parser';
 
 @ApiTags('logs')
 @Controller('logs')
 export class LogsController {
-  constructor(
-    private readonly logsService: LogsService,
-    private readonly logQueryParser: LogQueryParser,
-    private readonly logAggregateQueryParser: LogAggregateQueryParser,
-  ) {}
+  constructor(private readonly logsService: LogsService) {}
 
   @Get('aggregate')
   @ApiOperation({ summary: 'Aggregate log counts into time buckets' })
@@ -63,11 +62,9 @@ export class LogsController {
   @ApiOkResponse({ type: LogAggregateResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid aggregation parameters.' })
   aggregateLogs(
-    @Query() rawQueryParameters: Readonly<Record<string, unknown>>,
+    @Query(LogAggregateQueryParser) aggregateQuery: LogAggregateQuery,
   ): Promise<LogAggregateResponseDto> {
-    return this.logsService.aggregateLogs(
-      this.logAggregateQueryParser.parse(rawQueryParameters),
-    );
+    return this.logsService.aggregateLogs(aggregateQuery);
   }
 
   @Get()
@@ -97,11 +94,9 @@ export class LogsController {
   @ApiOkResponse({ type: QueryLogsResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid query parameters.' })
   queryLogs(
-    @Query() rawQueryParameters: Readonly<Record<string, unknown>>,
+    @Query(LogQueryParser) logQuery: LogQuery,
   ): Promise<QueryLogsResponseDto> {
-    return this.logsService.queryLogs(
-      this.logQueryParser.parse(rawQueryParameters),
-    );
+    return this.logsService.queryLogs(logQuery);
   }
 
   @Post()
@@ -113,7 +108,7 @@ export class LogsController {
     description: 'The request is malformed or every entry was rejected.',
   })
   ingestLogs(
-    @Body() ingestionRequest: IngestLogsDto,
+    @Body(LogEntryValidator) ingestionRequest: ValidatedIngestLogs,
   ): Promise<IngestLogsResponseDto> {
     return this.logsService.ingestLogs(ingestionRequest);
   }
