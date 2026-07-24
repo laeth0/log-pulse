@@ -11,16 +11,16 @@ async function bootstrap() {
   // Global validation pipe — rejects requests with invalid DTOs automatically
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,        // strip unknown properties
+      whitelist: true, // strip unknown properties
       forbidNonWhitelisted: false,
-      transform: true,        // auto-transform payloads to DTO class instances
+      transform: true, // auto-transform payloads to DTO class instances
     }),
   );
 
-  const port = process.env.PORT ?? 3000;
+  const port = process.env.PORT ?? 8080;
   await app.listen(port, '0.0.0.0');
   logger.log(`🚀 Log Pulse is running on http://localhost:${port}`);
   logger.log(`   GET http://localhost:${port}/health`);
 }
 
-bootstrap();
+void bootstrap();

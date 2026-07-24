@@ -7,6 +7,8 @@ import { Log } from './entities/log.entity';
 import { LogEntryValidator } from './log-entry.validator';
 import { LogsController } from './logs.controller';
 import { LogsService } from './logs.service';
+import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
+import { LogQueryParser } from './query/log-query.parser';
 import { LogTimestampValidator } from './validation/log-timestamp.validator';
 
 @Module({
@@ -16,6 +18,8 @@ import { LogTimestampValidator } from './validation/log-timestamp.validator';
     LogsService,
     LogEntryValidator,
     LogTimestampValidator,
+    LogQueryCursorCodec,
+    LogQueryParser,
     { provide: Clock, useClass: SystemClock },
   ],
 })

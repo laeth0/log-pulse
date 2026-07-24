@@ -37,14 +37,14 @@ export type LogAttributes = Record<string, string | number | boolean>;
 @Entity('logs')
 @Index('idx_logs_service_timestamp', ['service', 'timestamp'])
 @Index('idx_logs_level_timestamp', ['level', 'timestamp'])
-@Index('idx_logs_timestamp', ['timestamp'])
+@Index('idx_logs_timestamp_id_desc', ['timestamp', 'id'])
 export class Log {
   /**
    * Auto-incrementing surrogate primary key.
    * Used as the cursor token base for keyset pagination.
    */
   @PrimaryGeneratedColumn({ type: 'bigint' })
-  id: number;
+  id: string;
 
   /**
    * Client-supplied event time (required, ISO 8601).
