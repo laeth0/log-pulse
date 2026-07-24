@@ -11,6 +11,8 @@ import { LogAggregateQueryParser } from './query/log-aggregate-query.parser';
 import { LogFilterParser } from './query/log-filter.parser';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 import { LogQueryParser } from './query/log-query.parser';
+import { LogRetentionConfig } from './retention/log-retention.config';
+import { LogRetentionService } from './retention/log-retention.service';
 import { LogTimestampValidator } from './validation/log-timestamp.validator';
 
 @Module({
@@ -24,6 +26,8 @@ import { LogTimestampValidator } from './validation/log-timestamp.validator';
     LogFilterParser,
     LogQueryParser,
     LogAggregateQueryParser,
+    LogRetentionConfig,
+    LogRetentionService,
     { provide: Clock, useClass: SystemClock },
   ],
 })

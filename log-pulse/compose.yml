@@ -11,9 +11,13 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASS: ${DB_PASS:-log_pulse_password}
       DB_NAME: ${DB_NAME:-log_pulse}
-      DB_SSL: "false"
+      DB_SSL: 'false'
+      LOG_RETENTION_ENABLED: ${LOG_RETENTION_ENABLED:-true}
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
+      LOG_RETENTION_BATCH_SIZE: ${LOG_RETENTION_BATCH_SIZE:-1000}
+      LOG_RETENTION_MAX_BATCHES: ${LOG_RETENTION_MAX_BATCHES:-10}
     ports:
-      - "8080:8080"
+      - '8080:8080'
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,10 +35,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\"",
-        ]
+        ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 5s
       timeout: 5s
       retries: 10

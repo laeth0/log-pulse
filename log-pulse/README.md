@@ -25,3 +25,22 @@ To pull the latest published image:
 ```bash
 docker pull ghcr.io/<repository-owner>/<repository-name>:latest
 ```
+
+## Log retention
+
+An hourly background job removes logs whose event timestamp is older than the
+configured retention window. Cleanup uses short, bounded delete statements with
+`FOR UPDATE SKIP LOCKED`, allowing ingestion to continue while expired rows are
+removed. A PostgreSQL advisory lock ensures that only one application replica
+runs cleanup at a time.
+
+| Environment variable        | Default | Description                               |
+| --------------------------- | ------: | ----------------------------------------- |
+| `LOG_RETENTION_ENABLED`     |  `true` | Enables or disables automatic cleanup.    |
+| `LOG_RETENTION_DAYS`        |    `30` | Number of days that logs are retained.    |
+| `LOG_RETENTION_BATCH_SIZE`  |  `1000` | Maximum rows deleted by one statement.    |
+| `LOG_RETENTION_MAX_BATCHES` |    `10` | Maximum delete statements per hourly run. |
+
+Invalid retention values stop the application during startup rather than
+silently running with an unintended policy. If more expired rows remain after a
+run reaches its batch limit, the next hourly run continues the cleanup.
