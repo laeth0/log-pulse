@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { AppService } from './app.service';
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         migrationsTableName: 'typeorm_migrations',
-        migrationsRun: true,   // run pending migrations automatically on startup
+        migrationsRun: true, // run pending migrations automatically on startup
         synchronize: false,
         ssl:
           cfg.get<string>('DB_SSL') === 'true'
@@ -32,6 +33,7 @@ import { AppService } from './app.service';
         logging: cfg.get<string>('NODE_ENV') === 'development',
       }),
     }),
+    LogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
