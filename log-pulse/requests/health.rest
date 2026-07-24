@@ -1,0 +1,4 @@
+@baseUrl = http://localhost:8080
+
+### Verify the service is ready and connected to PostgreSQL
+GET {{baseUrl}}/health

@@ -1,0 +1,12 @@
+@baseUrl = http://localhost:8080
+
+### Query the most recent logs
+GET {{baseUrl}}/logs?limit=100
+
+### Query with combinable filters
+GET {{baseUrl}}/logs?service=checkout&level=error&since=2026-07-20T14:00:00Z&until=2026-07-20T15:00:00Z&attr.user_id=42&q=declined&limit=10
+
+### Cursor pagination
+### Replace the value below with next_cursor from a previous GET /logs response.
+@cursor = paste-next-cursor-here
+GET {{baseUrl}}/logs?limit=10&cursor={{cursor}}

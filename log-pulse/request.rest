@@ -1,8 +1,0 @@
-@baseUrl = http://localhost:8080
-
-### ─────────────────────────────────────────────────────────────────────────
-### Health
-### ─────────────────────────────────────────────────────────────────────────
-
-### GET /health — verify the service is up and the database is connected
-GET {{baseUrl}}/health
