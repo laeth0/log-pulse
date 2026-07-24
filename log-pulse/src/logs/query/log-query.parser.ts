@@ -2,84 +2,43 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 
 import {
   DEFAULT_LOG_QUERY_LIMIT,
-  ISO_TIMESTAMP_SCHEMA,
-  LOG_ATTRIBUTE_QUERY_PREFIX,
-  LOG_LEVEL_SCHEMA,
   MAX_LOG_QUERY_LIMIT,
   NUMERIC_LIMIT_PATTERN,
 } from '../../common/const/log-query.const';
-import type { LogLevel } from '../entities/log.entity';
 import { LogQuery } from '../models/log-query';
+import { LogFilterParser } from './log-filter.parser';
 import { LogQueryCursorCodec } from './log-query-cursor.codec';
 
 /** Converts untrusted HTTP query parameters into a validated application query. */
 @Injectable()
 export class LogQueryParser {
-  constructor(private readonly cursorCodec: LogQueryCursorCodec) {}
+  constructor(
+    private readonly logFilterParser: LogFilterParser,
+    private readonly logQueryCursorCodec: LogQueryCursorCodec,
+  ) {}
 
-  parse(rawQuery: Readonly<Record<string, unknown>>): LogQuery {
-    const service = this.readOptionalString(rawQuery, 'service');
-    const level = this.parseLevel(rawQuery.level);
-    const since = this.parseTimestamp(rawQuery.since, 'since');
-    const until = this.parseTimestamp(rawQuery.until, 'until');
-    const messageQuery = this.readOptionalString(rawQuery, 'q');
-    const limit = this.parseLimit(rawQuery.limit);
-    const cursor = this.parseCursor(rawQuery.cursor);
-
-    if (since && until && until.getTime() < since.getTime()) {
-      this.reject('until must not be before since');
-    }
+  parse(rawQueryParameters: Readonly<Record<string, unknown>>): LogQuery {
+    const logFilters = this.logFilterParser.parse(rawQueryParameters);
+    const resultLimit = this.parseLimit(rawQueryParameters.limit);
+    const paginationCursor = this.parseCursor(rawQueryParameters.cursor);
 
     return {
-      ...(service !== undefined && { service }),
-      ...(level !== undefined && { level }),
-      ...(since !== undefined && { since }),
-      ...(until !== undefined && { until }),
-      attributes: this.parseAttributes(rawQuery),
-      ...(messageQuery !== undefined && { messageQuery }),
-      limit,
-      ...(cursor !== undefined && { cursor }),
+      ...logFilters,
+      limit: resultLimit,
+      ...(paginationCursor !== undefined && { cursor: paginationCursor }),
     };
   }
 
-  private parseLevel(input: unknown): LogLevel | undefined {
-    if (input === undefined) {
-      return undefined;
-    }
-
-    const parsedLevel = LOG_LEVEL_SCHEMA.safeParse(input);
-    if (!parsedLevel.success) {
-      const displayedLevel =
-        typeof input === 'string' ? input : 'non-string value';
-      this.reject(`invalid level: '${displayedLevel}'`);
-    }
-
-    return parsedLevel.data;
-  }
-
-  private parseTimestamp(input: unknown, name: string): Date | undefined {
-    if (input === undefined) {
-      return undefined;
-    }
-
-    const parsedTimestamp = ISO_TIMESTAMP_SCHEMA.safeParse(input);
-    if (!parsedTimestamp.success) {
-      this.reject(`invalid ${name} timestamp`);
-    }
-
-    return new Date(parsedTimestamp.data);
-  }
-
-  private parseLimit(input: unknown): number {
-    if (input === undefined) {
+  private parseLimit(rawLimit: unknown): number {
+    if (rawLimit === undefined) {
       return DEFAULT_LOG_QUERY_LIMIT;
     }
 
-    if (typeof input !== 'string' || !NUMERIC_LIMIT_PATTERN.test(input)) {
+    if (typeof rawLimit !== 'string' || !NUMERIC_LIMIT_PATTERN.test(rawLimit)) {
       this.reject('limit must be numeric');
     }
 
-    const requestedLimit = Number(input);
+    const requestedLimit = Number(rawLimit);
     if (requestedLimit < 1) {
       this.reject('limit must be greater than zero');
     }
@@ -87,59 +46,21 @@ export class LogQueryParser {
     return Math.min(requestedLimit, MAX_LOG_QUERY_LIMIT);
   }
 
-  private parseCursor(input: unknown): LogQuery['cursor'] {
-    if (input === undefined) {
+  private parseCursor(rawCursor: unknown): LogQuery['cursor'] {
+    if (rawCursor === undefined) {
       return undefined;
     }
 
-    if (typeof input !== 'string') {
+    if (typeof rawCursor !== 'string') {
       this.reject('invalid cursor');
     }
 
-    const cursor = this.cursorCodec.decode(input);
-    if (!cursor) {
+    const paginationCursor = this.logQueryCursorCodec.decode(rawCursor);
+    if (!paginationCursor) {
       this.reject('invalid cursor');
     }
 
-    return cursor;
-  }
-
-  private parseAttributes(
-    rawQuery: Readonly<Record<string, unknown>>,
-  ): Readonly<Record<string, string>> {
-    const attributes: Record<string, string> = {};
-
-    for (const [name, value] of Object.entries(rawQuery)) {
-      if (!name.startsWith(LOG_ATTRIBUTE_QUERY_PREFIX)) {
-        continue;
-      }
-
-      const attributeName = name.slice(LOG_ATTRIBUTE_QUERY_PREFIX.length);
-      if (attributeName.length === 0 || typeof value !== 'string') {
-        this.reject(`invalid attribute filter: '${name}'`);
-      }
-
-      attributes[attributeName] = value;
-    }
-
-    return attributes;
-  }
-
-  private readOptionalString(
-    rawQuery: Readonly<Record<string, unknown>>,
-    name: string,
-  ): string | undefined {
-    const value = rawQuery[name];
-
-    if (value === undefined) {
-      return undefined;
-    }
-
-    if (typeof value !== 'string') {
-      this.reject(`${name} must be a string`);
-    }
-
-    return value;
+    return paginationCursor;
   }
 
   private reject(message: string): never {

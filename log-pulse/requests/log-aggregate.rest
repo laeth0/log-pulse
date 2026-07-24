@@ -1,0 +1,10 @@
+@baseUrl = http://localhost:8080
+
+### Aggregate counts into one-minute buckets
+GET {{baseUrl}}/logs/aggregate?since=2026-07-20T14:00:00Z&until=2026-07-20T15:00:00Z&bucket=1m
+
+### Aggregate and group by service
+GET {{baseUrl}}/logs/aggregate?since=2026-07-20T14:00:00Z&until=2026-07-20T15:00:00Z&bucket=5m&group_by=service
+
+### Aggregate with combinable filters
+GET {{baseUrl}}/logs/aggregate?since=2026-07-20T14:00:00Z&until=2026-07-20T15:00:00Z&bucket=1h&group_by=level&service=checkout&attr.user_id=42&q=declined

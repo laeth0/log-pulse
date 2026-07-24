@@ -10,13 +10,13 @@ import { LogQueryCursor } from '../models/log-query-cursor';
 /** Encodes and safely decodes opaque keyset-pagination cursors. */
 @Injectable()
 export class LogQueryCursorCodec {
-  encode(cursor: LogQueryCursor): string {
-    const payload = JSON.stringify({
-      timestamp: cursor.timestamp.toISOString(),
-      id: cursor.id,
+  encode(paginationCursor: LogQueryCursor): string {
+    const serializedCursor = JSON.stringify({
+      timestamp: paginationCursor.timestamp.toISOString(),
+      id: paginationCursor.id,
     });
 
-    return Buffer.from(payload, 'utf8').toString('base64url');
+    return Buffer.from(serializedCursor, 'utf8').toString('base64url');
   }
 
   decode(encodedCursor: string): LogQueryCursor | null {
@@ -29,10 +29,11 @@ export class LogQueryCursorCodec {
     }
 
     try {
-      const payload: unknown = JSON.parse(
+      const decodedCursorPayload: unknown = JSON.parse(
         Buffer.from(encodedCursor, 'base64url').toString('utf8'),
       );
-      const parsedCursor = LOG_QUERY_CURSOR_SCHEMA.safeParse(payload);
+      const parsedCursor =
+        LOG_QUERY_CURSOR_SCHEMA.safeParse(decodedCursorPayload);
 
       if (!parsedCursor.success) {
         return null;

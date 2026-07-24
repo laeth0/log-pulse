@@ -7,6 +7,8 @@ import { Log } from './entities/log.entity';
 import { LogEntryValidator } from './log-entry.validator';
 import { LogsController } from './logs.controller';
 import { LogsService } from './logs.service';
+import { LogAggregateQueryParser } from './query/log-aggregate-query.parser';
+import { LogFilterParser } from './query/log-filter.parser';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 import { LogQueryParser } from './query/log-query.parser';
 import { LogTimestampValidator } from './validation/log-timestamp.validator';
@@ -19,7 +21,9 @@ import { LogTimestampValidator } from './validation/log-timestamp.validator';
     LogEntryValidator,
     LogTimestampValidator,
     LogQueryCursorCodec,
+    LogFilterParser,
     LogQueryParser,
+    LogAggregateQueryParser,
     { provide: Clock, useClass: SystemClock },
   ],
 })

@@ -1,13 +1,9 @@
-import { LogLevel } from '../entities/log.entity';
+import { LogFilters } from './log-filters';
 import { LogQueryCursor } from './log-query-cursor';
 
-export type LogQuery = Readonly<{
-  service?: string;
-  level?: LogLevel;
-  since?: Date;
-  until?: Date;
-  attributes: Readonly<Record<string, string>>;
-  messageQuery?: string;
-  limit: number;
-  cursor?: LogQueryCursor;
-}>;
+export type LogQuery = Readonly<
+  LogFilters & {
+    limit: number;
+    cursor?: LogQueryCursor;
+  }
+>;

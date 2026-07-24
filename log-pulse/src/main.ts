@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const logger = new Logger('Bootstrap');
+  const bootstrapLogger = new Logger('Bootstrap');
   app.enableShutdownHooks();
 
   // Global validation pipe — rejects requests with invalid DTOs automatically
@@ -19,8 +19,8 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 8080;
   await app.listen(port, '0.0.0.0');
-  logger.log(`🚀 Log Pulse is running on http://localhost:${port}`);
-  logger.log(`   GET http://localhost:${port}/health`);
+  bootstrapLogger.log(`🚀 Log Pulse is running on http://localhost:${port}`);
+  bootstrapLogger.log(`   GET http://localhost:${port}/health`);
 }
 
 void bootstrap();

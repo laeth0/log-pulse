@@ -8,23 +8,23 @@ import { LogTimestampValidator } from './validation/log-timestamp.validator';
 /** Validates one untrusted log entry without affecting the rest of its batch. */
 @Injectable()
 export class LogEntryValidator {
-  constructor(private readonly timestampValidator: LogTimestampValidator) {}
+  constructor(private readonly logTimestampValidator: LogTimestampValidator) {}
 
-  validate(input: unknown): LogEntryValidationResult {
-    const parsedEntry = LOG_ENTRY_SCHEMA.safeParse(input);
+  validate(rawLogEntry: unknown): LogEntryValidationResult {
+    const parsedLogEntry = LOG_ENTRY_SCHEMA.safeParse(rawLogEntry);
 
-    if (!parsedEntry.success) {
+    if (!parsedLogEntry.success) {
       return {
         isValid: false,
         reason: formatLogEntryValidationError({
-          input,
-          issue: parsedEntry.error.issues[0],
+          rawLogEntry,
+          validationIssue: parsedLogEntry.error.issues[0],
         }),
       };
     }
 
-    const timestamp = new Date(parsedEntry.data.timestamp);
-    if (this.timestampValidator.isTooFarInFuture(timestamp)) {
+    const logTimestamp = new Date(parsedLogEntry.data.timestamp);
+    if (this.logTimestampValidator.isTooFarInFuture(logTimestamp)) {
       return {
         isValid: false,
         reason: 'timestamp is more than 5 minutes in the future',
@@ -34,9 +34,9 @@ export class LogEntryValidator {
     return {
       isValid: true,
       log: {
-        ...parsedEntry.data,
-        timestamp,
-        attributes: parsedEntry.data.attributes ?? {},
+        ...parsedLogEntry.data,
+        timestamp: logTimestamp,
+        attributes: parsedLogEntry.data.attributes ?? {},
       },
     };
   }

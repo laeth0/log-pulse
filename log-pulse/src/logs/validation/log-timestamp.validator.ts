@@ -8,10 +8,10 @@ import { Clock } from '../../common/time/clock';
 export class LogTimestampValidator {
   constructor(private readonly clock: Clock) {}
 
-  isTooFarInFuture(timestamp: Date): boolean {
+  isTooFarInFuture(logTimestamp: Date): boolean {
     const latestAcceptedTimestamp =
       this.clock.now().getTime() + MAX_LOG_FUTURE_OFFSET_MILLISECONDS;
 
-    return timestamp.getTime() > latestAcceptedTimestamp;
+    return logTimestamp.getTime() > latestAcceptedTimestamp;
   }
 }

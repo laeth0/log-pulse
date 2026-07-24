@@ -14,23 +14,23 @@ import { LogsModule } from './logs/logs.module';
     // Database connection — reads from environment variables
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (cfg: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: cfg.get<string>('DB_HOST', 'localhost'),
-        port: cfg.get<number>('DB_PORT', 5432),
-        username: cfg.get<string>('DB_USER', 'postgres'),
-        password: cfg.get<string>('DB_PASS', ''),
-        database: cfg.get<string>('DB_NAME', 'log_pulse'),
+        host: configService.get<string>('DB_HOST', 'localhost'),
+        port: configService.get<number>('DB_PORT', 5432),
+        username: configService.get<string>('DB_USER', 'postgres'),
+        password: configService.get<string>('DB_PASS', ''),
+        database: configService.get<string>('DB_NAME', 'log_pulse'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         migrationsTableName: 'typeorm_migrations',
         migrationsRun: true, // run pending migrations automatically on startup
         synchronize: false,
         ssl:
-          cfg.get<string>('DB_SSL') === 'true'
+          configService.get<string>('DB_SSL') === 'true'
             ? { rejectUnauthorized: false }
             : false,
-        logging: cfg.get<string>('NODE_ENV') === 'development',
+        logging: configService.get<string>('NODE_ENV') === 'development',
       }),
     }),
     LogsModule,
