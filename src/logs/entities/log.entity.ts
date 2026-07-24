@@ -5,14 +5,7 @@ import {
   Index,
   CreateDateColumn,
 } from 'typeorm';
-
-/** Allowed log severity levels as defined by the API contract. */
-export enum LogLevel {
-  DEBUG = 'debug',
-  INFO = 'info',
-  WARN = 'warn',
-  ERROR = 'error',
-}
+import { LogLevel } from '../../common/enums/log-level.enum';
 
 /**
  * Flat attribute bag: values are strings, numbers, or booleans.
@@ -30,9 +23,8 @@ export type LogAttributes = Record<string, string | number | boolean>;
  *    individual keys with GIN or expression indexes without a separate table.
  *  - Composite indexes on (service, timestamp) and (level, timestamp) support
  *    the most common query patterns while keeping write amplification low.
- *  - `id` uses BIGINT GENERATED ALWAYS (via `PrimaryGeneratedColumn('increment')`)
- *    rather than UUID to keep the primary key narrow and the clustered index tight,
- *    which matters at million-plus row counts.
+ *  - `id` uses UUID (via `PrimaryGeneratedColumn('uuid')`) for global uniqueness
+ *    and easier distributed ingestion without coordination.
  */
 @Entity('logs')
 @Index('idx_logs_service_timestamp', ['service', 'timestamp'])
@@ -40,10 +32,10 @@ export type LogAttributes = Record<string, string | number | boolean>;
 @Index('idx_logs_timestamp_id_desc', ['timestamp', 'id'])
 export class Log {
   /**
-   * Auto-incrementing surrogate primary key.
-   * Used as the cursor token base for keyset pagination.
+   * UUID primary key — generated automatically by PostgreSQL / TypeORM.
+   * Provides global uniqueness without requiring coordination between writers.
    */
-  @PrimaryGeneratedColumn({ type: 'bigint' })
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   /**
