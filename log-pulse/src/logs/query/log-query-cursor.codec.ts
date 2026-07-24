@@ -1,16 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { z } from 'zod';
 
+import {
+  BASE64_URL_PATTERN,
+  LOG_QUERY_CURSOR_SCHEMA,
+  MAX_LOG_QUERY_CURSOR_LENGTH,
+} from '../../common/const/log-query-cursor.const';
 import { LogQueryCursor } from '../models/log-query-cursor';
-
-const MAX_CURSOR_LENGTH = 4_096;
-const BASE64_URL_PATTERN = /^[A-Za-z0-9_-]+$/;
-const CURSOR_SCHEMA = z
-  .object({
-    timestamp: z.iso.datetime({ offset: true }),
-    id: z.string().regex(/^[1-9]\d*$/),
-  })
-  .strict();
 
 /** Encodes and safely decodes opaque keyset-pagination cursors. */
 @Injectable()
@@ -27,7 +22,7 @@ export class LogQueryCursorCodec {
   decode(encodedCursor: string): LogQueryCursor | null {
     if (
       encodedCursor.length === 0 ||
-      encodedCursor.length > MAX_CURSOR_LENGTH ||
+      encodedCursor.length > MAX_LOG_QUERY_CURSOR_LENGTH ||
       !BASE64_URL_PATTERN.test(encodedCursor)
     ) {
       return null;
@@ -37,7 +32,7 @@ export class LogQueryCursorCodec {
       const payload: unknown = JSON.parse(
         Buffer.from(encodedCursor, 'base64url').toString('utf8'),
       );
-      const parsedCursor = CURSOR_SCHEMA.safeParse(payload);
+      const parsedCursor = LOG_QUERY_CURSOR_SCHEMA.safeParse(payload);
 
       if (!parsedCursor.success) {
         return null;

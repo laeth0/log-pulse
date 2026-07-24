@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import { MAX_LOG_FUTURE_OFFSET_MILLISECONDS } from '../../common/const/log-ingestion.const';
 import { Clock } from '../../common/time/clock';
-
-const MAX_FUTURE_OFFSET_MILLISECONDS = 5 * 60 * 1_000;
 
 /** Enforces time-related ingestion rules after timestamp parsing. */
 @Injectable()
@@ -11,7 +10,7 @@ export class LogTimestampValidator {
 
   isTooFarInFuture(timestamp: Date): boolean {
     const latestAcceptedTimestamp =
-      this.clock.now().getTime() + MAX_FUTURE_OFFSET_MILLISECONDS;
+      this.clock.now().getTime() + MAX_LOG_FUTURE_OFFSET_MILLISECONDS;
 
     return timestamp.getTime() > latestAcceptedTimestamp;
   }

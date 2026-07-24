@@ -1,0 +1,1 @@
+export const MAX_LOG_FUTURE_OFFSET_MILLISECONDS = 5 * 60 * 1_000;

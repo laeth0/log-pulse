@@ -1,16 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { z } from 'zod';
 
-import { LogLevel } from '../entities/log.entity';
+import {
+  DEFAULT_LOG_QUERY_LIMIT,
+  ISO_TIMESTAMP_SCHEMA,
+  LOG_ATTRIBUTE_QUERY_PREFIX,
+  LOG_LEVEL_SCHEMA,
+  MAX_LOG_QUERY_LIMIT,
+  NUMERIC_LIMIT_PATTERN,
+} from '../../common/const/log-query.const';
+import type { LogLevel } from '../entities/log.entity';
 import { LogQuery } from '../models/log-query';
 import { LogQueryCursorCodec } from './log-query-cursor.codec';
-
-const DEFAULT_LIMIT = 100;
-const MAX_LIMIT = 1_000;
-const ATTRIBUTE_PREFIX = 'attr.';
-const ISO_TIMESTAMP_SCHEMA = z.iso.datetime({ offset: true });
-const LOG_LEVEL_SCHEMA = z.enum(LogLevel);
-const NUMERIC_LIMIT_PATTERN = /^\d+$/;
 
 /** Converts untrusted HTTP query parameters into a validated application query. */
 @Injectable()
@@ -72,7 +72,7 @@ export class LogQueryParser {
 
   private parseLimit(input: unknown): number {
     if (input === undefined) {
-      return DEFAULT_LIMIT;
+      return DEFAULT_LOG_QUERY_LIMIT;
     }
 
     if (typeof input !== 'string' || !NUMERIC_LIMIT_PATTERN.test(input)) {
@@ -84,7 +84,7 @@ export class LogQueryParser {
       this.reject('limit must be greater than zero');
     }
 
-    return Math.min(requestedLimit, MAX_LIMIT);
+    return Math.min(requestedLimit, MAX_LOG_QUERY_LIMIT);
   }
 
   private parseCursor(input: unknown): LogQuery['cursor'] {
@@ -110,11 +110,11 @@ export class LogQueryParser {
     const attributes: Record<string, string> = {};
 
     for (const [name, value] of Object.entries(rawQuery)) {
-      if (!name.startsWith(ATTRIBUTE_PREFIX)) {
+      if (!name.startsWith(LOG_ATTRIBUTE_QUERY_PREFIX)) {
         continue;
       }
 
-      const attributeName = name.slice(ATTRIBUTE_PREFIX.length);
+      const attributeName = name.slice(LOG_ATTRIBUTE_QUERY_PREFIX.length);
       if (attributeName.length === 0 || typeof value !== 'string') {
         this.reject(`invalid attribute filter: '${name}'`);
       }
