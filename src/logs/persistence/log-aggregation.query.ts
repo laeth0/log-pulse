@@ -12,14 +12,12 @@ import { Log } from '../entities/log.entity';
 import type { LogAggregateQuery } from '../models/log-aggregate-query';
 import type { LogAggregateRow } from '../models/log-aggregate-row';
 import type { StoredLogAggregate } from './persistence.types';
-import { LogFilterQueryBuilder } from './log-filter-query.builder';
 
 @Injectable()
 export class LogAggregationQuery {
   constructor(
     @InjectRepository(Log)
     private readonly repository: Repository<Log>,
-    private readonly filterQueryBuilder: LogFilterQueryBuilder,
   ) {}
 
   async execute(
@@ -46,7 +44,47 @@ export class LogAggregationQuery {
         .addOrderBy(groupByExpression, 'ASC');
     }
 
-    this.filterQueryBuilder.apply(queryBuilder, aggregateQuery);
+    if (aggregateQuery.service !== undefined) {
+      queryBuilder.andWhere('log.service = :service', {
+        service: aggregateQuery.service,
+      });
+    }
+
+    if (aggregateQuery.level !== undefined) {
+      queryBuilder.andWhere('log.level = :level', {
+        level: aggregateQuery.level,
+      });
+    }
+
+    queryBuilder
+      .andWhere('log.timestamp >= :since', {
+        since: aggregateQuery.since,
+      })
+      .andWhere('log.timestamp < :until', {
+        until: aggregateQuery.until,
+      });
+
+    if (aggregateQuery.messageQuery !== undefined) {
+      const escapedMessage = aggregateQuery.messageQuery.replace(
+        /[\\%_]/g,
+        '\\$&',
+      );
+      queryBuilder.andWhere("log.message ILIKE :messageQuery ESCAPE '\\'", {
+        messageQuery: `%${escapedMessage}%`,
+      });
+    }
+
+    aggregateQuery.attributes.forEach(
+      ([attributeName, attributeValue], index): void => {
+        queryBuilder.andWhere(
+          `log.attributes ->> CAST(:attributeName${index} AS text) = CAST(:attributeValue${index} AS text)`,
+          {
+            [`attributeName${index}`]: attributeName,
+            [`attributeValue${index}`]: attributeValue,
+          },
+        );
+      },
+    );
 
     const rows = await queryBuilder.getRawMany<LogAggregateRow>();
     return rows.map((row) => this.decodeAggregateRow(row));

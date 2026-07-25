@@ -32,8 +32,8 @@ export class CreateCanonicalLogsSchema1784905000000
       ON logs (timestamp DESC, id DESC)
     `);
     await queryRunner.query(`
-      CREATE INDEX idx_logs_service_hash_timestamp_id
-      ON logs (md5(service), timestamp DESC, id DESC)
+      CREATE INDEX idx_logs_service_timestamp_id
+      ON logs (service, timestamp DESC, id DESC)
     `);
     await queryRunner.query(`
       CREATE INDEX idx_logs_level_timestamp_id
@@ -42,11 +42,6 @@ export class CreateCanonicalLogsSchema1784905000000
     await queryRunner.query(`
       CREATE INDEX idx_logs_message_trgm
       ON logs USING gin (message gin_trgm_ops)
-    `);
-    await queryRunner.query(`
-      CREATE STATISTICS stats_logs_service_hash_dependency (dependencies)
-      ON md5(service), service
-      FROM logs
     `);
   }
 

@@ -40,16 +40,12 @@ async function verifySchema(): Promise<void> {
             AND tablename = 'logs'
             AND indexname IN (
               'idx_logs_timestamp_id',
-              'idx_logs_service_hash_timestamp_id',
+              'idx_logs_service_timestamp_id',
               'idx_logs_level_timestamp_id',
               'idx_logs_message_trgm'
             )
         )
-        AND EXISTS (
-          SELECT 1
-          FROM pg_statistic_ext
-          WHERE stxname = 'stats_logs_service_hash_dependency'
-        ) AS valid
+        AS valid
     `);
 
     if (!readValid(verification)) {

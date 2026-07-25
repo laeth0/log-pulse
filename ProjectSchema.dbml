@@ -41,9 +41,9 @@ Table logs {
       note: 'Candidate descending B-tree for stable keyset pagination, range scans, aggregation, and retention; final inclusion requires EXPLAIN evidence.'
     ]
 
-    (`md5(service)`, timestamp, id) [
-      name: 'idx_logs_service_hash_timestamp_id',
-      note: 'Candidate B-tree with residual exact service equality; avoids a key-size contract cap. Final inclusion requires EXPLAIN evidence.'
+    (service, timestamp, id) [
+      name: 'idx_logs_service_timestamp_id',
+      note: 'Candidate B-tree for service filtering and stable timestamp/id ordering. Final inclusion requires EXPLAIN evidence.'
     ]
 
     (level, timestamp, id) [

@@ -40,7 +40,7 @@ const cases: readonly ExplainCase[] = [
     name: 'list-service',
     sql: `SELECT id, timestamp, level, service, message, attributes
           FROM logs
-          WHERE md5(service) = md5($1) AND service = $1
+          WHERE service = $1
           ORDER BY timestamp DESC, id DESC LIMIT 1001`,
     parameters: ['service-1'],
   },
@@ -99,7 +99,7 @@ const cases: readonly ExplainCase[] = [
     sql: `SELECT date_bin($1::interval, timestamp, $2::timestamptz) AS start,
                  COUNT(*)::bigint AS count
           FROM logs
-          WHERE md5(service) = md5($3) AND service = $3
+          WHERE service = $3
             AND timestamp >= $4 AND timestamp < $5
           GROUP BY start ORDER BY start ASC`,
     parameters: [

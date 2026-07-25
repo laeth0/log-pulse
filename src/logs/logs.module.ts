@@ -8,7 +8,6 @@ import { LogsController } from './logs.controller';
 import { LogsService } from './logs.service';
 import { LogsRepository } from './persistence/logs.repository';
 import { LogAggregationQuery } from './persistence/log-aggregation.query';
-import { LogFilterQueryBuilder } from './persistence/log-filter-query.builder';
 import { LogAggregateQueryParser } from './query/log-aggregate-query.parser';
 import { LogFilterParser } from './query/log-filter.parser';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
@@ -27,7 +26,6 @@ import { LogEntryValidator } from './validation/log-entry.validator';
     LogsService,
     LogsRepository,
     LogAggregationQuery,
-    LogFilterQueryBuilder,
     LogBatchValidator,
     LogEntryValidator,
     LogTimestampValidator,
