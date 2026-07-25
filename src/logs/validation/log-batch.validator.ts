@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 
 import { Clock } from '../../common/time/clock';
+import type { RejectedLogDto } from '../dto/rejected-log.dto';
+import type { LogEntry } from '../models/log-entry';
 import type { ValidatedIngestLogs } from '../models/validated-ingest-logs';
 import { LogEntryValidator } from './log-entry.validator';
 import { LogTimestampValidator } from './log-timestamp.validator';
@@ -18,16 +20,19 @@ export class LogBatchValidator implements PipeTransform<
 
   transform(ingestionRequest: unknown): ValidatedIngestLogs {
     const rawLogEntries = this.readLogEntries(ingestionRequest);
+
     const latestAcceptedTimestamp =
       this.timestampValidator.createLatestAcceptedTimestamp(this.clock.now());
-    const logs: ValidatedIngestLogs['logs'][number][] = [];
-    const rejected: ValidatedIngestLogs['rejected'][number][] = [];
+
+    const logs: LogEntry[] = [];
+    const rejected: RejectedLogDto[] = [];
 
     rawLogEntries.forEach((rawLogEntry, index) => {
       const result = this.entryValidator.validate(
         rawLogEntry,
         latestAcceptedTimestamp,
       );
+
       if (result.isValid) {
         logs.push(result.log);
       } else {
@@ -52,6 +57,7 @@ export class LogBatchValidator implements PipeTransform<
     }
 
     const { logs } = ingestionRequest;
+
     if (!Array.isArray(logs)) {
       throw new BadRequestException({ error: 'logs must be an array' });
     }

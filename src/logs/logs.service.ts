@@ -1,10 +1,5 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
-import type { LogEntry } from './models/log-entry';
 import { IngestLogsResponseDto } from './dto/ingest-logs-response.dto';
 import { LogAggregateBucketDto } from './dto/log-aggregate-bucket.dto';
 import { LogAggregateResponseDto } from './dto/log-aggregate-response.dto';
@@ -19,11 +14,8 @@ import { LogAggregationQuery } from './persistence/log-aggregation.query';
 import { LogsRepository } from './persistence/logs.repository';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 
-/** Executes log ingestion, listing, and PostgreSQL-side aggregation. */
 @Injectable()
 export class LogsService {
-  private readonly logger = new Logger(LogsService.name);
-
   constructor(
     private readonly logsRepository: LogsRepository,
     private readonly logAggregationQuery: LogAggregationQuery,
@@ -33,7 +25,11 @@ export class LogsService {
   async ingestLogs(
     ingestionRequest: ValidatedIngestLogs,
   ): Promise<IngestLogsResponseDto> {
-    await this.persistLogs(ingestionRequest.logs);
+    try {
+      await this.logsRepository.insertBatch(ingestionRequest.logs);
+    } catch {
+      throw new InternalServerErrorException('Failed to ingest logs');
+    }
 
     return {
       accepted: ingestionRequest.logs.length,
@@ -46,11 +42,8 @@ export class LogsService {
       const retrievedLogs = await this.logsRepository.findPage(logQuery);
 
       return this.createPaginatedQueryResponse(retrievedLogs, logQuery);
-    } catch (error: unknown) {
-      this.logPersistenceFailure('query logs', error);
-      throw new InternalServerErrorException('Failed to query logs', {
-        cause: error,
-      });
+    } catch {
+      throw new InternalServerErrorException('Failed to query logs');
     }
   }
 
@@ -67,22 +60,8 @@ export class LogsService {
             this.mapAggregateRowToBucket(aggregateRow),
         ),
       };
-    } catch (error: unknown) {
-      this.logPersistenceFailure('aggregate logs', error);
-      throw new InternalServerErrorException('Failed to aggregate logs', {
-        cause: error,
-      });
-    }
-  }
-
-  private async persistLogs(validatedLogs: readonly LogEntry[]): Promise<void> {
-    try {
-      await this.logsRepository.insertBatch(validatedLogs);
-    } catch (error: unknown) {
-      this.logPersistenceFailure('persist an ingestion batch', error);
-      throw new InternalServerErrorException('Failed to ingest logs', {
-        cause: error,
-      });
+    } catch {
+      throw new InternalServerErrorException('Failed to aggregate logs');
     }
   }
 
@@ -133,14 +112,5 @@ export class LogsService {
       message: storedLog.message,
       attributes: storedLog.attributes,
     };
-  }
-
-  private logPersistenceFailure(operation: string, error: unknown): void {
-    this.logger.error(
-      `Failed to ${operation}: ${
-        error instanceof Error ? error.message : 'unknown persistence error'
-      }`,
-      error instanceof Error ? error.stack : undefined,
-    );
   }
 }
