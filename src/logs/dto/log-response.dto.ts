@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { LogLevel } from '../entities/log.entity';
+import { LogLevel } from '../../common/enums/log-level.enum';
 import type { LogAttributes } from '../entities/log.entity';
 
 /** Public representation of a stored log. */

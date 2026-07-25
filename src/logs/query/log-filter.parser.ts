@@ -5,8 +5,8 @@ import {
   LOG_ATTRIBUTE_QUERY_PREFIX,
   LOG_LEVEL_SCHEMA,
 } from '../../common/const/log-query.const';
-import type { LogLevel } from '../entities/log.entity';
-import { LogFilters } from '../models/log-filters';
+import type { LogLevel } from '../../common/enums/log-level.enum';
+import type { LogAttributeFilter, LogFilters } from '../models/log-filters';
 
 /** Parses filters shared by log listing and aggregation endpoints. */
 @Injectable()
@@ -44,6 +44,10 @@ export class LogFilterParser {
     const rangeStart = this.parseTimestamp(rawQueryParameters.since, 'since');
     const rangeEnd = this.parseTimestamp(rawQueryParameters.until, 'until');
     const messageSearchTerm = this.readOptionalString(rawQueryParameters, 'q');
+
+    if (messageSearchTerm !== undefined && messageSearchTerm.length === 0) {
+      this.reject('q must not be empty');
+    }
 
     if (rangeStart && rangeEnd && rangeEnd.getTime() < rangeStart.getTime()) {
       this.reject('until must not be before since');
@@ -94,8 +98,8 @@ export class LogFilterParser {
 
   private parseAttributes(
     rawQueryParameters: Readonly<Record<string, unknown>>,
-  ): Readonly<Record<string, string>> {
-    const attributeFilters: Record<string, string> = {};
+  ): readonly LogAttributeFilter[] {
+    const attributeFilters: LogAttributeFilter[] = [];
 
     for (const [parameterName, parameterValue] of Object.entries(
       rawQueryParameters,
@@ -111,7 +115,7 @@ export class LogFilterParser {
         this.reject(`invalid attribute filter: '${parameterName}'`);
       }
 
-      attributeFilters[attributeName] = parameterValue;
+      attributeFilters.push([attributeName, parameterValue]);
     }
 
     return attributeFilters;

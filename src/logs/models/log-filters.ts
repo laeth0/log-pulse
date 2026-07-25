@@ -1,4 +1,6 @@
-import { LogLevel } from '../entities/log.entity';
+import type { LogLevel } from '../../common/enums/log-level.enum';
+
+export type LogAttributeFilter = readonly [name: string, value: string];
 
 /** Filters shared by log listing and aggregation queries. */
 export type LogFilters = Readonly<{
@@ -6,6 +8,6 @@ export type LogFilters = Readonly<{
   level?: LogLevel;
   since?: Date;
   until?: Date;
-  attributes: Readonly<Record<string, string>>;
+  attributes: readonly LogAttributeFilter[];
   messageQuery?: string;
 }>;

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { LogLevel } from '../../logs/entities/log.entity';
+import { LogLevel } from '../enums/log-level.enum';
 
 export const DEFAULT_LOG_QUERY_LIMIT = 100;
 export const MAX_LOG_QUERY_LIMIT = 1_000;

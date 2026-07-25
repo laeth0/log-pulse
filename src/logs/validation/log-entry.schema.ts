@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { LogLevel } from '../entities/log.entity';
+import { LogLevel } from '../../common/enums/log-level.enum';
 
 const ATTRIBUTE_VALUE_SCHEMA = z.union([
   z.string(),

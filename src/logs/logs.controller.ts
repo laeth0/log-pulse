@@ -16,16 +16,17 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { IngestLogsDto } from './dto/ingest-logs.dto';
 import { IngestLogsResponseDto } from './dto/ingest-logs-response.dto';
 import { LogAggregateResponseDto } from './dto/log-aggregate-response.dto';
 import { QueryLogsResponseDto } from './dto/query-logs-response.dto';
-import { LogEntryValidator } from './log-entry.validator';
 import { LogsService } from './logs.service';
-import { LogAggregateQuery } from './models/log-aggregate-query';
-import { LogQuery } from './models/log-query';
-import { ValidatedIngestLogs } from './models/validated-ingest-logs';
+import type { LogAggregateQuery } from './models/log-aggregate-query';
+import type { LogQuery } from './models/log-query';
+import type { ValidatedIngestLogs } from './models/validated-ingest-logs';
 import { LogAggregateQueryParser } from './query/log-aggregate-query.parser';
 import { LogQueryParser } from './query/log-query.parser';
+import { LogBatchValidator } from './validation/log-batch.validator';
 
 @ApiTags('logs')
 @Controller('logs')
@@ -108,7 +109,7 @@ export class LogsController {
     description: 'The request is malformed or every entry was rejected.',
   })
   ingestLogs(
-    @Body(LogEntryValidator) ingestionRequest: ValidatedIngestLogs,
+    @Body(LogBatchValidator) ingestionRequest: ValidatedIngestLogs,
   ): Promise<IngestLogsResponseDto> {
     return this.logsService.ingestLogs(ingestionRequest);
   }

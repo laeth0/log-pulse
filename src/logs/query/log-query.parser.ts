@@ -27,7 +27,10 @@ export class LogQueryParser implements PipeTransform<
     ]);
     const logFilters = this.logFilterParser.parse(rawQueryParameters);
     const resultLimit = this.parseLimit(rawQueryParameters.limit);
-    const paginationCursor = this.parseCursor(rawQueryParameters.cursor);
+    const paginationCursor = this.parseCursor(
+      rawQueryParameters.cursor,
+      logFilters,
+    );
 
     return {
       ...logFilters,
@@ -53,7 +56,10 @@ export class LogQueryParser implements PipeTransform<
     return Math.min(requestedLimit, MAX_LOG_QUERY_LIMIT);
   }
 
-  private parseCursor(rawCursor: unknown): LogQuery['cursor'] {
+  private parseCursor(
+    rawCursor: unknown,
+    logFilters: Omit<LogQuery, 'limit' | 'cursor'>,
+  ): LogQuery['cursor'] {
     if (rawCursor === undefined) {
       return undefined;
     }
@@ -62,7 +68,10 @@ export class LogQueryParser implements PipeTransform<
       this.reject('invalid cursor');
     }
 
-    const paginationCursor = this.logQueryCursorCodec.decode(rawCursor);
+    const paginationCursor = this.logQueryCursorCodec.decode(
+      rawCursor,
+      logFilters,
+    );
     if (!paginationCursor) {
       this.reject('invalid cursor');
     }

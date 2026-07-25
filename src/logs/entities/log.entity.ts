@@ -1,9 +1,9 @@
 import {
+  Check,
+  Column,
+  CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
-  Column,
-  Index,
-  CreateDateColumn,
 } from 'typeorm';
 import { LogLevel } from '../../common/enums/log-level.enum';
 
@@ -21,22 +21,28 @@ export type LogAttributes = Record<string, string | number | boolean>;
  *    the ingestion layer stores the client-supplied time, not the DB insert time.
  *  - `attributes` is stored as `jsonb` so PostgreSQL can index and filter
  *    individual keys with GIN or expression indexes without a separate table.
- *  - Composite indexes on (service, timestamp) and (level, timestamp) support
- *    the most common query patterns while keeping write amplification low.
- *  - `id` uses UUID (via `PrimaryGeneratedColumn('uuid')`) for global uniqueness
- *    and easier distributed ingestion without coordination.
+ *  - Secondary indexes are migration-owned and must be justified by measured
+ *    production query patterns.
+ *  - `id` is a PostgreSQL bigint identity represented as a decimal string in
+ *    TypeScript so values never lose integer precision.
  */
 @Entity('logs')
-@Index('idx_logs_service_timestamp', ['service', 'timestamp'])
-@Index('idx_logs_level_timestamp', ['level', 'timestamp'])
-@Index('idx_logs_timestamp_id_desc', ['timestamp', 'id'])
+@Check('chk_logs_service_non_empty', 'char_length("service") > 0')
+@Check('chk_logs_message_non_empty', 'char_length("message") > 0')
+@Check(
+  'chk_logs_attributes_flat_scalars',
+  'log_attributes_are_flat_scalars("attributes")',
+)
 export class Log {
   /**
-   * UUID primary key — generated automatically by PostgreSQL / TypeORM.
-   * Provides global uniqueness without requiring coordination between writers.
+   * PostgreSQL bigint identity, returned by the pg driver as a decimal string.
    */
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn('identity', {
+    type: 'bigint',
+    generatedIdentity: 'BY DEFAULT',
+    primaryKeyConstraintName: 'pk_logs',
+  })
+  id!: string;
 
   /**
    * Client-supplied event time (required, ISO 8601).
@@ -44,7 +50,7 @@ export class Log {
    * Rejected at ingest if unparseable or more than 5 minutes in the future.
    */
   @Column({ type: 'timestamptz', nullable: false })
-  timestamp: Date;
+  timestamp!: Date;
 
   /**
    * Severity level — one of debug / info / warn / error.
@@ -54,25 +60,25 @@ export class Log {
   @Column({
     type: 'enum',
     enum: LogLevel,
+    enumName: 'logs_level_enum',
     nullable: false,
   })
-  level: LogLevel;
+  level!: LogLevel;
 
   /**
    * Name of the originating service (non-empty string, required).
    * Indexed via the composite index on (service, timestamp).
    */
-  @Column({ type: 'varchar', length: 255, nullable: false })
-  service: string;
+  @Column({ type: 'text', nullable: false })
+  service!: string;
 
   /**
    * Human-readable log message (non-empty string, required).
    * Stored as `text` (no length cap) to accommodate long messages.
-   * Substring searches (`q` param) run a `ILIKE '%term%'` scan; if full-text
-   * performance becomes critical, add a `tsvector` generated column + GIN index.
+   * Substring searches use parameterized ILIKE and a trigram GIN index.
    */
   @Column({ type: 'text', nullable: false })
-  message: string;
+  message!: string;
 
   /**
    * Arbitrary flat key/value metadata (optional).
@@ -80,13 +86,32 @@ export class Log {
    * expression-based filtering (e.g. `attributes->>'user_id' = '42'`).
    * Default is an empty object so queries never need to handle NULL.
    */
-  @Column({ type: 'jsonb', nullable: false, default: {} })
-  attributes: LogAttributes;
+  @Column({
+    type: 'jsonb',
+    nullable: false,
+    default: {},
+  })
+  attributes!: LogAttributes;
+
+  /**
+   * Internal generated projection used for type-insensitive string equality.
+   * It is never selected or supplied by application code.
+   */
+  @Column({
+    type: 'jsonb',
+    name: 'attributes_text',
+    asExpression: 'log_attributes_to_text("attributes")',
+    generatedType: 'STORED',
+    select: false,
+    insert: false,
+    update: false,
+  })
+  attributesText!: Readonly<Record<string, string>>;
 
   /**
    * Wall-clock time the row was inserted into the database.
    * Useful for debugging ingestion latency; not exposed in the public API.
    */
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 }

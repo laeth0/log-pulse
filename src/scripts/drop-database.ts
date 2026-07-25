@@ -1,46 +1,43 @@
 import 'reflect-metadata';
-import * as path from 'path';
 
-import * as dotenv from 'dotenv';
 import { Client as PgClient } from 'pg';
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+import { loadConfiguration } from '../config/configuration';
+import {
+  assertDatabaseDropAllowed,
+  createAdminClientOptions,
+  describeError,
+  quoteDatabaseIdentifier,
+} from './database-admin';
 
 async function dropDatabase(): Promise<void> {
-  const dbName = process.env.DB_NAME ?? 'log_pulse';
+  const configuration = loadConfiguration();
+  assertDatabaseDropAllowed(configuration);
 
-  // Connect to the default 'postgres' database to issue DROP DATABASE
-  const Client = new PgClient({
-    host: process.env.DB_HOST ?? 'localhost',
-    port: Number(process.env.DB_PORT) || 5432,
-    user: process.env.DB_USER ?? 'postgres',
-    password: process.env.DB_PASS ?? '',
-    database: 'postgres',
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  });
+  const databaseName = configuration.database.name;
+  const quotedDatabaseName = quoteDatabaseIdentifier(databaseName);
+  const client = new PgClient(createAdminClientOptions(configuration));
 
-  await Client.connect();
+  await client.connect();
 
   try {
-    // Terminate active connections before dropping so it doesn't block
-    await Client.query(
+    await client.query(
       `
       SELECT pg_terminate_backend(pid)
       FROM pg_stat_activity
       WHERE datname = $1 AND pid <> pg_backend_pid()
     `,
-      [dbName],
+      [databaseName],
     );
 
-    // Database names cannot be parameterised in DROP DATABASE
-    await Client.query(`DROP DATABASE IF EXISTS "${dbName}"`);
-    console.log(`✓ Database "${dbName}" dropped successfully.`);
+    await client.query(`DROP DATABASE IF EXISTS ${quotedDatabaseName}`);
+    console.log(`Database "${databaseName}" dropped successfully.`);
   } finally {
-    await Client.end();
+    await client.end();
   }
 }
 
-dropDatabase().catch((error: Error) => {
-  console.error('Failed to drop database:', error.message);
+dropDatabase().catch((error: unknown) => {
+  console.error('Failed to drop database:', describeError(error));
   process.exit(1);
 });

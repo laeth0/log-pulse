@@ -3,36 +3,30 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
 
-import {
-  LOG_AGGREGATE_BUCKET_EXPRESSION,
-  LOG_AGGREGATE_GROUP_EXPRESSIONS,
-  LOG_AGGREGATE_INTERVALS,
-  LOG_AGGREGATE_ORIGIN,
-} from '../common/const/log-aggregate.const';
+import type { LogEntry } from './models/log-entry';
 import { IngestLogsResponseDto } from './dto/ingest-logs-response.dto';
 import { LogAggregateBucketDto } from './dto/log-aggregate-bucket.dto';
 import { LogAggregateResponseDto } from './dto/log-aggregate-response.dto';
 import { LogResponseDto } from './dto/log-response.dto';
 import { QueryLogsResponseDto } from './dto/query-logs-response.dto';
 import { Log } from './entities/log.entity';
-import { LogAggregateQuery } from './models/log-aggregate-query';
-import { LogAggregateRow } from './models/log-aggregate-row';
-import { LogFilters } from './models/log-filters';
-import { LogQuery } from './models/log-query';
-import { ValidatedIngestLogs } from './models/validated-ingest-logs';
+import type { LogAggregateQuery } from './models/log-aggregate-query';
+import type { LogQuery } from './models/log-query';
+import type { ValidatedIngestLogs } from './models/validated-ingest-logs';
+import type { StoredLogAggregate } from './persistence/persistence.types';
+import { LogAggregationQuery } from './persistence/log-aggregation.query';
+import { LogsRepository } from './persistence/logs.repository';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 
 /** Executes log ingestion, listing, and PostgreSQL-side aggregation. */
 @Injectable()
 export class LogsService {
-  private readonly logsServiceLogger = new Logger(LogsService.name);
+  private readonly logger = new Logger(LogsService.name);
 
   constructor(
-    @InjectRepository(Log)
-    private readonly logRepository: Repository<Log>,
+    private readonly logsRepository: LogsRepository,
+    private readonly logAggregationQuery: LogAggregationQuery,
     private readonly logQueryCursorCodec: LogQueryCursorCodec,
   ) {}
 
@@ -48,30 +42,12 @@ export class LogsService {
   }
 
   async queryLogs(logQuery: LogQuery): Promise<QueryLogsResponseDto> {
-    const logQueryBuilder = this.logRepository
-      .createQueryBuilder('log')
-      .select([
-        'log.id',
-        'log.timestamp',
-        'log.level',
-        'log.service',
-        'log.message',
-        'log.attributes',
-      ]);
-
-    this.applyLogFilters(logQueryBuilder, logQuery);
-    this.applyPaginationCursor(logQueryBuilder, logQuery);
-
     try {
-      const retrievedLogs = await logQueryBuilder
-        .orderBy('log.timestamp', 'DESC')
-        .addOrderBy('log.id', 'DESC')
-        .take(logQuery.limit + 1)
-        .getMany();
+      const retrievedLogs = await this.logsRepository.findPage(logQuery);
 
-      return this.createPaginatedQueryResponse(retrievedLogs, logQuery.limit);
+      return this.createPaginatedQueryResponse(retrievedLogs, logQuery);
     } catch (error: unknown) {
-      this.logsServiceLogger.error('Failed to query logs');
+      this.logPersistenceFailure('query logs', error);
       throw new InternalServerErrorException('Failed to query logs', {
         cause: error,
       });
@@ -81,41 +57,18 @@ export class LogsService {
   async aggregateLogs(
     aggregateQuery: LogAggregateQuery,
   ): Promise<LogAggregateResponseDto> {
-    const groupByExpression = aggregateQuery.groupBy
-      ? LOG_AGGREGATE_GROUP_EXPRESSIONS[aggregateQuery.groupBy]
-      : null;
-    const aggregateQueryBuilder = this.logRepository
-      .createQueryBuilder('log')
-      .select(LOG_AGGREGATE_BUCKET_EXPRESSION, 'start')
-      .addSelect(groupByExpression ?? 'NULL::text', 'group')
-      .addSelect('COUNT(*)::bigint', 'count')
-      .setParameters({
-        bucketInterval: LOG_AGGREGATE_INTERVALS[aggregateQuery.bucket],
-        bucketOrigin: LOG_AGGREGATE_ORIGIN,
-      })
-      .groupBy(LOG_AGGREGATE_BUCKET_EXPRESSION)
-      .orderBy(LOG_AGGREGATE_BUCKET_EXPRESSION, 'ASC');
-
-    if (groupByExpression) {
-      aggregateQueryBuilder
-        .addGroupBy(groupByExpression)
-        .addOrderBy(groupByExpression, 'ASC');
-    }
-
-    this.applyLogFilters(aggregateQueryBuilder, aggregateQuery);
-
     try {
       const aggregateRows =
-        await aggregateQueryBuilder.getRawMany<LogAggregateRow>();
+        await this.logAggregationQuery.execute(aggregateQuery);
 
       return {
         buckets: aggregateRows.map(
-          (aggregateRow: LogAggregateRow): LogAggregateBucketDto =>
+          (aggregateRow: StoredLogAggregate): LogAggregateBucketDto =>
             this.mapAggregateRowToBucket(aggregateRow),
         ),
       };
     } catch (error: unknown) {
-      this.logsServiceLogger.error('Failed to aggregate logs');
+      this.logPersistenceFailure('aggregate logs', error);
       throw new InternalServerErrorException('Failed to aggregate logs', {
         cause: error,
       });
@@ -124,96 +77,30 @@ export class LogsService {
 
   private async persistLogs(validatedLogs: readonly LogEntry[]): Promise<void> {
     try {
-      await this.logRepository.insert([...validatedLogs]);
+      await this.logsRepository.insertBatch(validatedLogs);
     } catch (error: unknown) {
-      this.logsServiceLogger.error('Failed to persist an ingestion batch');
+      this.logPersistenceFailure('persist an ingestion batch', error);
       throw new InternalServerErrorException('Failed to ingest logs', {
         cause: error,
       });
     }
   }
 
-  private applyLogFilters(
-    logQueryBuilder: SelectQueryBuilder<Log>,
-    logFilters: LogFilters,
-  ): void {
-    if (logFilters.service !== undefined) {
-      logQueryBuilder.andWhere('log.service = :service', {
-        service: logFilters.service,
-      });
-    }
-
-    if (logFilters.level !== undefined) {
-      logQueryBuilder.andWhere('log.level = :level', {
-        level: logFilters.level,
-      });
-    }
-
-    if (logFilters.since !== undefined) {
-      logQueryBuilder.andWhere('log.timestamp >= :since', {
-        since: logFilters.since,
-      });
-    }
-
-    if (logFilters.until !== undefined) {
-      logQueryBuilder.andWhere('log.timestamp < :until', {
-        until: logFilters.until,
-      });
-    }
-
-    if (logFilters.messageQuery !== undefined) {
-      logQueryBuilder.andWhere("log.message ILIKE :messageQuery ESCAPE '\\'", {
-        messageQuery: `%${this.escapeLikePattern(logFilters.messageQuery)}%`,
-      });
-    }
-
-    Object.entries(logFilters.attributes).forEach(
-      ([attributeName, attributeValue], attributeFilterIndex): void => {
-        logQueryBuilder.andWhere(
-          `log.attributes ->> :attributeName${attributeFilterIndex} = :attributeValue${attributeFilterIndex}`,
-          {
-            [`attributeName${attributeFilterIndex}`]: attributeName,
-            [`attributeValue${attributeFilterIndex}`]: attributeValue,
-          },
-        );
-      },
-    );
-  }
-
-  private applyPaginationCursor(
-    logQueryBuilder: SelectQueryBuilder<Log>,
-    logQuery: LogQuery,
-  ): void {
-    if (logQuery.cursor !== undefined) {
-      logQueryBuilder.andWhere(
-        '(log.timestamp, log.id) < (:cursorTimestamp, :cursorId)',
-        {
-          cursorTimestamp: logQuery.cursor.timestamp,
-          cursorId: logQuery.cursor.id,
-        },
-      );
-    }
-  }
-
   private mapAggregateRowToBucket(
-    aggregateRow: LogAggregateRow,
+    aggregateRow: StoredLogAggregate,
   ): LogAggregateBucketDto {
-    const bucketStart =
-      aggregateRow.start instanceof Date
-        ? aggregateRow.start
-        : new Date(aggregateRow.start);
-
     return {
-      start: bucketStart.toISOString(),
+      start: aggregateRow.start.toISOString(),
       group: aggregateRow.group,
-      count: Number(aggregateRow.count),
+      count: aggregateRow.count,
     };
   }
 
   private createPaginatedQueryResponse(
     retrievedLogs: readonly Log[],
-    resultLimit: number,
+    logQuery: LogQuery,
   ): QueryLogsResponseDto {
+    const resultLimit = logQuery.limit;
     const hasMoreResults = retrievedLogs.length > resultLimit;
     const pageLogs = hasMoreResults
       ? retrievedLogs.slice(0, resultLimit)
@@ -226,10 +113,13 @@ export class LogsService {
       ),
       next_cursor:
         hasMoreResults && lastPageLog
-          ? this.logQueryCursorCodec.encode({
-              timestamp: lastPageLog.timestamp,
-              id: lastPageLog.id,
-            })
+          ? this.logQueryCursorCodec.encode(
+              {
+                timestamp: lastPageLog.timestamp,
+                id: lastPageLog.id,
+              },
+              logQuery,
+            )
           : null,
     };
   }
@@ -245,7 +135,12 @@ export class LogsService {
     };
   }
 
-  private escapeLikePattern(searchText: string): string {
-    return searchText.replace(/[\\%_]/g, '\\$&');
+  private logPersistenceFailure(operation: string, error: unknown): void {
+    this.logger.error(
+      `Failed to ${operation}: ${
+        error instanceof Error ? error.message : 'unknown persistence error'
+      }`,
+      error instanceof Error ? error.stack : undefined,
+    );
   }
 }

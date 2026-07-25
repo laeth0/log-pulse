@@ -1,48 +1,42 @@
 import 'reflect-metadata';
-import * as path from 'path';
 
-import * as dotenv from 'dotenv';
 import { Client as PgClient } from 'pg';
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+import { loadConfiguration } from '../config/configuration';
+import {
+  createAdminClientOptions,
+  describeError,
+  quoteDatabaseIdentifier,
+} from './database-admin';
 
 async function createDatabase(): Promise<void> {
-  const dbName = process.env.DB_NAME ?? 'log_pulse';
+  const configuration = loadConfiguration();
+  const databaseName = configuration.database.name;
+  const quotedDatabaseName = quoteDatabaseIdentifier(databaseName);
+  const client = new PgClient(createAdminClientOptions(configuration));
 
-  // Connect to the default 'postgres' database to issue CREATE DATABASE
-  const Client = new PgClient({
-    host: process.env.DB_HOST ?? 'localhost',
-    port: Number(process.env.DB_PORT) || 5432,
-    user: process.env.DB_USER ?? 'postgres',
-    password: process.env.DB_PASS ?? '',
-    database: 'postgres',
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  });
-
-  await Client.connect();
+  await client.connect();
 
   try {
-    const existingDatabaseResult = await Client.query(
+    const existingDatabaseResult = await client.query(
       `SELECT 1 FROM pg_database WHERE datname = $1`,
-      [dbName],
+      [databaseName],
     );
 
-    if (
-      existingDatabaseResult.rowCount &&
-      existingDatabaseResult.rowCount > 0
-    ) {
-      console.log(`Database "${dbName}" already exists — skipping creation.`);
+    if ((existingDatabaseResult.rowCount ?? 0) > 0) {
+      console.log(
+        `Database "${databaseName}" already exists — skipping creation.`,
+      );
     } else {
-      // Database names cannot be parameterised in CREATE DATABASE
-      await Client.query(`CREATE DATABASE "${dbName}"`);
-      console.log(`✓ Database "${dbName}" created successfully.`);
+      await client.query(`CREATE DATABASE ${quotedDatabaseName}`);
+      console.log(`Database "${databaseName}" created successfully.`);
     }
   } finally {
-    await Client.end();
+    await client.end();
   }
 }
 
-createDatabase().catch((error: Error) => {
-  console.error('Failed to create database:', error.message);
+createDatabase().catch((error: unknown) => {
+  console.error('Failed to create database:', describeError(error));
   process.exit(1);
 });
