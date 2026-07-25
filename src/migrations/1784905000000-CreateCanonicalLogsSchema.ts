@@ -27,22 +27,6 @@ export class CreateCanonicalLogsSchema1784905000000
     `);
 
     await queryRunner.query(`
-      CREATE FUNCTION log_attributes_to_text(input jsonb)
-      RETURNS jsonb
-      LANGUAGE sql
-      IMMUTABLE
-      STRICT
-      PARALLEL SAFE
-      AS $function$
-        SELECT COALESCE(
-          jsonb_object_agg(attribute.key, to_jsonb(attribute.value #>> '{}')),
-          '{}'::jsonb
-        )
-        FROM jsonb_each(input) AS attribute
-      $function$
-    `);
-
-    await queryRunner.query(`
       CREATE TYPE logs_level_enum AS ENUM ('debug', 'info', 'warn', 'error')
     `);
 
@@ -54,8 +38,6 @@ export class CreateCanonicalLogsSchema1784905000000
         service text NOT NULL,
         message text NOT NULL,
         attributes jsonb NOT NULL DEFAULT '{}'::jsonb,
-        attributes_text jsonb
-          GENERATED ALWAYS AS (log_attributes_to_text(attributes)) STORED NOT NULL,
         created_at timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT pk_logs PRIMARY KEY (id),
         CONSTRAINT chk_logs_service_non_empty CHECK (char_length(service) > 0),
@@ -64,35 +46,6 @@ export class CreateCanonicalLogsSchema1784905000000
           CHECK (log_attributes_are_flat_scalars(attributes))
       )
     `);
-
-    await queryRunner.query(
-      `
-        INSERT INTO typeorm_metadata (
-          type,
-          database,
-          schema,
-          "table",
-          name,
-          value
-        )
-        SELECT
-          'GENERATED_COLUMN',
-          current_database(),
-          current_schema(),
-          'logs',
-          'attributes_text',
-          'log_attributes_to_text("attributes")'
-        WHERE NOT EXISTS (
-          SELECT 1
-          FROM typeorm_metadata
-          WHERE type = 'GENERATED_COLUMN'
-            AND database = current_database()
-            AND schema = current_schema()
-            AND "table" = 'logs'
-            AND name = 'attributes_text'
-        )
-      `,
-    );
 
     await queryRunner.query(`
       CREATE INDEX idx_logs_timestamp_id
@@ -111,10 +64,6 @@ export class CreateCanonicalLogsSchema1784905000000
       ON logs USING gin (message gin_trgm_ops)
     `);
     await queryRunner.query(`
-      CREATE INDEX idx_logs_attributes_text_gin
-      ON logs USING gin (attributes_text jsonb_path_ops)
-    `);
-    await queryRunner.query(`
       CREATE STATISTICS stats_logs_service_hash_dependency (dependencies)
       ON md5(service), service
       FROM logs
@@ -122,19 +71,8 @@ export class CreateCanonicalLogsSchema1784905000000
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`
-      DELETE FROM typeorm_metadata
-      WHERE type = 'GENERATED_COLUMN'
-        AND database = current_database()
-        AND schema = current_schema()
-        AND "table" = 'logs'
-        AND name = 'attributes_text'
-    `);
     await queryRunner.query('DROP TABLE IF EXISTS logs');
     await queryRunner.query('DROP TYPE IF EXISTS logs_level_enum');
-    await queryRunner.query(
-      'DROP FUNCTION IF EXISTS log_attributes_to_text(jsonb)',
-    );
     await queryRunner.query(
       'DROP FUNCTION IF EXISTS log_attributes_are_flat_scalars(jsonb)',
     );

@@ -42,7 +42,7 @@ export class LogFilterQueryBuilder {
     filters.attributes.forEach(
       ([attributeName, attributeValue], attributeFilterIndex): void => {
         queryBuilder.andWhere(
-          `log.attributes_text @> jsonb_build_object(CAST(:attributeName${attributeFilterIndex} AS text), CAST(:attributeValue${attributeFilterIndex} AS text))`,
+          `log.attributes ->> CAST(:attributeName${attributeFilterIndex} AS text) = CAST(:attributeValue${attributeFilterIndex} AS text)`,
           {
             [`attributeName${attributeFilterIndex}`]: attributeName,
             [`attributeValue${attributeFilterIndex}`]: attributeValue,

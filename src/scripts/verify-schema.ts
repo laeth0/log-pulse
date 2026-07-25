@@ -19,7 +19,7 @@ async function verifySchema(): Promise<void> {
           WHERE enumtypid = 'logs_level_enum'::regtype
         ) = ARRAY['debug', 'info', 'warn', 'error']
         AND (
-          SELECT COUNT(*) = 8
+          SELECT COUNT(*) = 7
           FROM information_schema.columns
           WHERE table_schema = 'public'
             AND table_name = 'logs'
@@ -30,21 +30,12 @@ async function verifySchema(): Promise<void> {
               'service',
               'message',
               'attributes',
-              'attributes_text',
               'created_at'
             )
         )
-        AND (
-          SELECT is_generated = 'ALWAYS'
-          FROM information_schema.columns
-          WHERE table_schema = 'public'
-            AND table_name = 'logs'
-            AND column_name = 'attributes_text'
-        )
         AND to_regprocedure('log_attributes_are_flat_scalars(jsonb)') IS NOT NULL
-        AND to_regprocedure('log_attributes_to_text(jsonb)') IS NOT NULL
         AND (
-          SELECT COUNT(*) = 5
+          SELECT COUNT(*) = 4
           FROM pg_indexes
           WHERE schemaname = 'public'
             AND tablename = 'logs'
@@ -52,8 +43,7 @@ async function verifySchema(): Promise<void> {
               'idx_logs_timestamp_id',
               'idx_logs_service_hash_timestamp_id',
               'idx_logs_level_timestamp_id',
-              'idx_logs_message_trgm',
-              'idx_logs_attributes_text_gin'
+              'idx_logs_message_trgm'
             )
         )
         AND EXISTS (

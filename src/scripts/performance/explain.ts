@@ -62,7 +62,7 @@ const cases: readonly ExplainCase[] = [
     name: 'list-attributes',
     sql: `SELECT id, timestamp, level, service, message, attributes
           FROM logs
-          WHERE attributes_text @> jsonb_build_object(CAST($1 AS text), CAST($2 AS text))
+          WHERE attributes ->> CAST($1 AS text) = CAST($2 AS text)
           ORDER BY timestamp DESC, id DESC LIMIT 101`,
     parameters: ['user_id', '42'],
   },
