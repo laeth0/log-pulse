@@ -2,7 +2,6 @@ import 'reflect-metadata';
 
 import { Client as PgClient } from 'pg';
 
-import { loadConfiguration } from '../config/configuration';
 import {
   assertDatabaseDropAllowed,
   createAdminClientOptions,
@@ -11,12 +10,11 @@ import {
 } from './database-admin';
 
 async function dropDatabase(): Promise<void> {
-  const configuration = loadConfiguration();
-  assertDatabaseDropAllowed(configuration);
+  assertDatabaseDropAllowed();
 
-  const databaseName = configuration.database.name;
+  const databaseName = process.env.DB_NAME ?? 'log_pulse';
   const quotedDatabaseName = quoteDatabaseIdentifier(databaseName);
-  const client = new PgClient(createAdminClientOptions(configuration));
+  const client = new PgClient(createAdminClientOptions());
 
   await client.connect();
 

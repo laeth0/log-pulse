@@ -7,7 +7,7 @@ import { NestFactory } from '@nestjs/core';
 import { DataSource } from 'typeorm';
 
 import { AppModule } from '../../app.module';
-import { loadConfiguration } from '../../config/configuration';
+import { LogRetentionConfig } from '../../logs/retention/log-retention.config';
 import { LogRetentionScheduler } from '../../logs/retention/log-retention.scheduler';
 import { readPositiveInteger } from './arguments';
 import { hasFlag } from './arguments';
@@ -16,8 +16,7 @@ async function benchmarkRetention(): Promise<void> {
   const expiredRows = readPositiveInteger('expired-rows', 100_000);
   const skipSeed = hasFlag('skip-seed');
   const seedOnly = hasFlag('seed-only');
-  const configuration = loadConfiguration();
-  if (!configuration.databaseAdministration.allowPerformanceReset) {
+  if (process.env.ALLOW_PERFORMANCE_RESET !== 'true') {
     throw new Error(
       'Set ALLOW_PERFORMANCE_RESET=true before generating expired rows',
     );
@@ -29,6 +28,7 @@ async function benchmarkRetention(): Promise<void> {
 
   try {
     const dataSource = application.get(DataSource);
+    const retentionConfig = application.get(LogRetentionConfig);
     const scheduler = application.get(LogRetentionScheduler);
     const before = await readDatabaseMetrics(dataSource);
 
@@ -44,7 +44,7 @@ async function benchmarkRetention(): Promise<void> {
           jsonb_build_object('expired', true, 'sequence', entry_number)
         FROM generate_series(1, $2::bigint) AS entry_number
       `,
-        [configuration.retention.days, expiredRows],
+        [retentionConfig.retentionDays, expiredRows],
       );
     }
 
@@ -60,7 +60,7 @@ async function benchmarkRetention(): Promise<void> {
     const evidence = {
       capturedAt: new Date().toISOString(),
       expiredRows,
-      retentionConfiguration: configuration.retention,
+      retentionConfiguration: retentionConfig,
       result,
       database: { before, after },
     };

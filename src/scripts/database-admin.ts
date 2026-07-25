@@ -1,19 +1,17 @@
-import type { ClientConfig } from 'pg';
+import 'dotenv/config';
 
-import type { ApplicationConfiguration } from '../config/configuration';
+import type { ClientConfig } from 'pg';
 
 const SIMPLE_POSTGRES_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-export function createAdminClientOptions(
-  configuration: ApplicationConfiguration,
-): ClientConfig {
+export function createAdminClientOptions(): ClientConfig {
   return {
-    host: configuration.database.host,
-    port: configuration.database.port,
-    user: configuration.database.username,
-    password: configuration.database.password,
+    host: process.env.DB_HOST ?? 'localhost',
+    port: Number(process.env.DB_PORT) || 5432,
+    user: process.env.DB_USER ?? 'postgres',
+    password: process.env.DB_PASS ?? '',
     database: 'postgres',
-    ssl: configuration.database.ssl ? { rejectUnauthorized: false } : false,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   };
 }
 
@@ -25,16 +23,14 @@ export function quoteDatabaseIdentifier(databaseName: string): string {
   return `"${databaseName}"`;
 }
 
-export function assertDatabaseDropAllowed(
-  configuration: ApplicationConfiguration,
-): void {
-  if (!configuration.databaseAdministration.allowDrop) {
+export function assertDatabaseDropAllowed(): void {
+  if (process.env.ALLOW_DATABASE_DROP !== 'true') {
     throw new Error(
       'Database deletion is disabled; set ALLOW_DATABASE_DROP=true explicitly',
     );
   }
 
-  if (configuration.application.environment === 'production') {
+  if (process.env.NODE_ENV === 'production') {
     throw new Error('Database deletion is forbidden in production');
   }
 }

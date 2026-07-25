@@ -2,7 +2,6 @@ import 'reflect-metadata';
 
 import { Client as PgClient } from 'pg';
 
-import { loadConfiguration } from '../config/configuration';
 import {
   createAdminClientOptions,
   describeError,
@@ -10,10 +9,9 @@ import {
 } from './database-admin';
 
 async function createDatabase(): Promise<void> {
-  const configuration = loadConfiguration();
-  const databaseName = configuration.database.name;
+  const databaseName = process.env.DB_NAME ?? 'log_pulse';
   const quotedDatabaseName = quoteDatabaseIdentifier(databaseName);
-  const client = new PgClient(createAdminClientOptions(configuration));
+  const client = new PgClient(createAdminClientOptions());
 
   await client.connect();
 

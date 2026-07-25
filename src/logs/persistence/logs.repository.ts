@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { SelectQueryBuilder } from 'typeorm';
 import { Repository } from 'typeorm';
@@ -15,10 +14,12 @@ import { LogFilterQueryBuilder } from './log-filter-query.builder';
  */
 @Injectable()
 export class LogsRepository {
+  private readonly insertChunkSize =
+    Number(process.env.LOG_INGEST_CHUNK_SIZE) || 1_000;
+
   constructor(
     @InjectRepository(Log)
     private readonly repository: Repository<Log>,
-    private readonly configService: ConfigService,
     private readonly filterQueryBuilder: LogFilterQueryBuilder,
   ) {}
 
@@ -27,19 +28,16 @@ export class LogsRepository {
       return;
     }
 
-    const chunkSize = this.configService.getOrThrow<number>(
-      'ingestion.chunkSize',
-    );
     await this.repository.manager.transaction(async (entityManager) => {
       const transactionalRepository = entityManager.getRepository(Log);
 
       for (
         let chunkStart = 0;
         chunkStart < logEntries.length;
-        chunkStart += chunkSize
+        chunkStart += this.insertChunkSize
       ) {
         await transactionalRepository.insert(
-          logEntries.slice(chunkStart, chunkStart + chunkSize),
+          logEntries.slice(chunkStart, chunkStart + this.insertChunkSize),
         );
       }
     });

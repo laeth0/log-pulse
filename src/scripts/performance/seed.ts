@@ -1,13 +1,11 @@
 import 'reflect-metadata';
 
 import { AppDataSource } from '../../config/data-source';
-import { loadConfiguration } from '../../config/configuration';
 import { hasFlag, readPositiveInteger } from './arguments';
 
 async function seed(): Promise<void> {
   const rows = readPositiveInteger('rows', 1_000_000);
   const reset = hasFlag('reset');
-  const configuration = loadConfiguration();
 
   await AppDataSource.initialize();
   try {
@@ -16,7 +14,7 @@ async function seed(): Promise<void> {
     }
 
     if (reset) {
-      if (!configuration.databaseAdministration.allowPerformanceReset) {
+      if (process.env.ALLOW_PERFORMANCE_RESET !== 'true') {
         throw new Error(
           'Set ALLOW_PERFORMANCE_RESET=true before using --reset',
         );

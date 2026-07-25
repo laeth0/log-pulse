@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { json } from 'express';
@@ -5,10 +7,8 @@ import type { INestApplication } from '@nestjs/common';
 
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common/errors/api-exception.filter';
-import { loadConfiguration } from './config/configuration';
 
 async function bootstrap(): Promise<void> {
-  const configuration = loadConfiguration();
   const bootstrapLogger = new Logger('Bootstrap');
   let app: INestApplication | undefined;
 
@@ -17,7 +17,7 @@ async function bootstrap(): Promise<void> {
     app.enableShutdownHooks();
     app.use(
       json({
-        limit: configuration.application.httpBodyLimitBytes,
+        limit: Number(process.env.HTTP_BODY_LIMIT_BYTES) || 52_428_800,
         strict: true,
       }),
     );
@@ -31,7 +31,7 @@ async function bootstrap(): Promise<void> {
       }),
     );
 
-    const port = configuration.application.port;
+    const port = Number(process.env.PORT) || 8080;
     await app.listen(port, '0.0.0.0');
     bootstrapLogger.log(`Log Pulse is ready at http://localhost:${port}`);
   } catch (error: unknown) {
