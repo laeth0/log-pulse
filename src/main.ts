@@ -5,9 +5,7 @@ import type { INestApplication } from '@nestjs/common';
 
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common/errors/api-exception.filter';
-import { malformedJsonErrorHandler } from './common/errors/malformed-json';
 import { loadConfiguration } from './config/configuration';
-import { ReadinessService } from './health/readiness.service';
 
 async function bootstrap(): Promise<void> {
   const configuration = loadConfiguration();
@@ -23,7 +21,6 @@ async function bootstrap(): Promise<void> {
         strict: true,
       }),
     );
-    app.use(malformedJsonErrorHandler);
     app.useGlobalFilters(new ApiExceptionFilter(app.get(HttpAdapterHost)));
 
     app.useGlobalPipes(
@@ -33,8 +30,6 @@ async function bootstrap(): Promise<void> {
         transform: true,
       }),
     );
-
-    await app.get(ReadinessService).assertReady();
 
     const port = configuration.application.port;
     await app.listen(port, '0.0.0.0');

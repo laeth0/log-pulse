@@ -9,24 +9,6 @@ export class CreateCanonicalLogsSchema1784905000000
     await queryRunner.query('CREATE EXTENSION IF NOT EXISTS pg_trgm');
 
     await queryRunner.query(`
-      CREATE FUNCTION log_attributes_are_flat_scalars(input jsonb)
-      RETURNS boolean
-      LANGUAGE sql
-      IMMUTABLE
-      STRICT
-      PARALLEL SAFE
-      AS $function$
-        SELECT
-          jsonb_typeof(input) = 'object'
-          AND NOT EXISTS (
-            SELECT 1
-            FROM jsonb_each(input) AS attribute
-            WHERE jsonb_typeof(attribute.value) NOT IN ('string', 'number', 'boolean')
-          )
-      $function$
-    `);
-
-    await queryRunner.query(`
       CREATE TYPE logs_level_enum AS ENUM ('debug', 'info', 'warn', 'error')
     `);
 
@@ -41,9 +23,7 @@ export class CreateCanonicalLogsSchema1784905000000
         created_at timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT pk_logs PRIMARY KEY (id),
         CONSTRAINT chk_logs_service_non_empty CHECK (char_length(service) > 0),
-        CONSTRAINT chk_logs_message_non_empty CHECK (char_length(message) > 0),
-        CONSTRAINT chk_logs_attributes_flat_scalars
-          CHECK (log_attributes_are_flat_scalars(attributes))
+        CONSTRAINT chk_logs_message_non_empty CHECK (char_length(message) > 0)
       )
     `);
 
@@ -73,8 +53,5 @@ export class CreateCanonicalLogsSchema1784905000000
   async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query('DROP TABLE IF EXISTS logs');
     await queryRunner.query('DROP TYPE IF EXISTS logs_level_enum');
-    await queryRunner.query(
-      'DROP FUNCTION IF EXISTS log_attributes_are_flat_scalars(jsonb)',
-    );
   }
 }

@@ -12,10 +12,6 @@ export type LogAttributes = Record<string, string | number | boolean>;
 @Entity('logs')
 @Check('chk_logs_service_non_empty', 'char_length("service") > 0')
 @Check('chk_logs_message_non_empty', 'char_length("message") > 0')
-@Check(
-  'chk_logs_attributes_flat_scalars',
-  'log_attributes_are_flat_scalars("attributes")',
-)
 export class Log {
   @PrimaryGeneratedColumn('identity', {
     type: 'bigint',

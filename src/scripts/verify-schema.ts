@@ -33,7 +33,6 @@ async function verifySchema(): Promise<void> {
               'created_at'
             )
         )
-        AND to_regprocedure('log_attributes_are_flat_scalars(jsonb)') IS NOT NULL
         AND (
           SELECT COUNT(*) = 4
           FROM pg_indexes

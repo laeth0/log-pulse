@@ -7,16 +7,12 @@ import {
 } from '@nestjs/common';
 import type { ExceptionFilter } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { isMalformedJsonError } from './malformed-json';
 
 type StandardErrorBody = Readonly<{
   statusCode: number;
   message: string;
 }>;
 
-/**
- * Keeps explicit contract errors intact and redacts unexpected failure details.
- */
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(ApiExceptionFilter.name);
@@ -28,9 +24,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
-        : isMalformedJsonError(exception)
-          ? HttpStatus.BAD_REQUEST
-          : HttpStatus.INTERNAL_SERVER_ERROR;
+        : HttpStatus.INTERNAL_SERVER_ERROR;
     const responseBody = this.createResponseBody(exception, status);
 
     if (status >= 500) {
@@ -51,16 +45,6 @@ export class ApiExceptionFilter implements ExceptionFilter {
     exception: unknown,
     status: number,
   ): object | StandardErrorBody {
-    if (
-      isMalformedJsonError(exception) ||
-      this.isWrappedMalformedJsonException(exception)
-    ) {
-      return {
-        accepted: 0,
-        rejected: [],
-      };
-    }
-
     if (!(exception instanceof HttpException)) {
       return {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -77,28 +61,5 @@ export class ApiExceptionFilter implements ExceptionFilter {
       statusCode: status,
       message: explicitResponse,
     };
-  }
-
-  private isWrappedMalformedJsonException(exception: unknown): boolean {
-    if (
-      !(exception instanceof HttpException) ||
-      exception.getStatus() !== HttpStatus.BAD_REQUEST
-    ) {
-      return false;
-    }
-
-    const response: unknown = exception.getResponse();
-    if (
-      typeof response !== 'object' ||
-      response === null ||
-      !('message' in response)
-    ) {
-      return false;
-    }
-
-    return (
-      typeof response.message === 'string' &&
-      response.message.toLowerCase().includes('json')
-    );
   }
 }

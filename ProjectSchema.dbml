@@ -66,8 +66,7 @@ Table logs {
     - BIGINT PK keeps the clustered index narrow at million-plus row counts.
     - `timestamp` is a plain column (not generated) so the client-supplied
       event time is preserved, independent of insert time.
-    - CHECK constraints require non-empty service/message and flat scalar
-      attributes through log_attributes_are_flat_scalars(attributes).
+    - CHECK constraints require non-empty service and message values.
     - The baseline migration currently creates only the primary key. Every
       secondary index listed above is a candidate pending EXPLAIN (ANALYZE,
       BUFFERS) and load evidence; the final schema sync occurs after that review.
