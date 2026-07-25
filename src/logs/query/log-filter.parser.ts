@@ -8,60 +8,62 @@ import {
 import type { LogLevel } from '../../common/enums/log-level.enum';
 import type { LogAttributeFilter, LogFilters } from '../models/log-filters';
 
+const SHARED_PARAMETER_NAMES: readonly string[] = [
+  'service',
+  'level',
+  'since',
+  'until',
+  'q',
+];
+
 /** Parses filters shared by log listing and aggregation endpoints. */
 @Injectable()
 export class LogFilterParser {
-  private readonly sharedParameterNames = new Set([
-    'service',
-    'level',
-    'since',
-    'until',
-    'q',
-  ]);
-
   assertKnownParameters(
     rawQueryParameters: Readonly<Record<string, unknown>>,
     endpointParameterNames: readonly string[],
   ): void {
-    const allowedParameterNames = new Set([
-      ...this.sharedParameterNames,
+    const allowedParameterNames = [
+      ...SHARED_PARAMETER_NAMES,
       ...endpointParameterNames,
-    ]);
+    ];
 
     for (const parameterName of Object.keys(rawQueryParameters)) {
       if (
-        !allowedParameterNames.has(parameterName) &&
+        !allowedParameterNames.includes(parameterName) &&
         !parameterName.startsWith(LOG_ATTRIBUTE_QUERY_PREFIX)
       ) {
-        this.reject(`unknown query parameter: '${parameterName}'`);
+        throw new BadRequestException({
+          error: `unknown query parameter: '${parameterName}'`,
+        });
       }
     }
   }
 
   parse(rawQueryParameters: Readonly<Record<string, unknown>>): LogFilters {
-    const serviceName = this.readOptionalString(rawQueryParameters, 'service');
-    const logLevel = this.parseLevel(rawQueryParameters.level);
-    const rangeStart = this.parseTimestamp(rawQueryParameters.since, 'since');
-    const rangeEnd = this.parseTimestamp(rawQueryParameters.until, 'until');
-    const messageSearchTerm = this.readOptionalString(rawQueryParameters, 'q');
+    const service = this.readOptionalString(rawQueryParameters, 'service');
+    const level = this.parseLevel(rawQueryParameters.level);
+    const since = this.parseTimestamp(rawQueryParameters.since, 'since');
+    const until = this.parseTimestamp(rawQueryParameters.until, 'until');
+    const messageQuery = this.readOptionalString(rawQueryParameters, 'q');
 
-    if (messageSearchTerm !== undefined && messageSearchTerm.length === 0) {
-      this.reject('q must not be empty');
+    if (messageQuery === '') {
+      throw new BadRequestException({ error: 'q must not be empty' });
     }
 
-    if (rangeStart && rangeEnd && rangeEnd.getTime() < rangeStart.getTime()) {
-      this.reject('until must not be before since');
+    if (since && until && until < since) {
+      throw new BadRequestException({
+        error: 'until must not be before since',
+      });
     }
 
     return {
-      ...(serviceName !== undefined && { service: serviceName }),
-      ...(logLevel !== undefined && { level: logLevel }),
-      ...(rangeStart !== undefined && { since: rangeStart }),
-      ...(rangeEnd !== undefined && { until: rangeEnd }),
+      service,
+      level,
+      since,
+      until,
       attributes: this.parseAttributes(rawQueryParameters),
-      ...(messageSearchTerm !== undefined && {
-        messageQuery: messageSearchTerm,
-      }),
+      messageQuery,
     };
   }
 
@@ -74,7 +76,9 @@ export class LogFilterParser {
     if (!parsedLevel.success) {
       const displayedLevel =
         typeof rawLevel === 'string' ? rawLevel : 'non-string value';
-      this.reject(`invalid level: '${displayedLevel}'`);
+      throw new BadRequestException({
+        error: `invalid level: '${displayedLevel}'`,
+      });
     }
 
     return parsedLevel.data;
@@ -90,7 +94,9 @@ export class LogFilterParser {
 
     const parsedTimestamp = ISO_TIMESTAMP_SCHEMA.safeParse(rawTimestamp);
     if (!parsedTimestamp.success) {
-      this.reject(`invalid ${parameterName} timestamp`);
+      throw new BadRequestException({
+        error: `invalid ${parameterName} timestamp`,
+      });
     }
 
     return new Date(parsedTimestamp.data);
@@ -112,7 +118,9 @@ export class LogFilterParser {
         LOG_ATTRIBUTE_QUERY_PREFIX.length,
       );
       if (attributeName.length === 0 || typeof parameterValue !== 'string') {
-        this.reject(`invalid attribute filter: '${parameterName}'`);
+        throw new BadRequestException({
+          error: `invalid attribute filter: '${parameterName}'`,
+        });
       }
 
       attributeFilters.push([attributeName, parameterValue]);
@@ -132,13 +140,11 @@ export class LogFilterParser {
     }
 
     if (typeof parameterValue !== 'string') {
-      this.reject(`${parameterName} must be a string`);
+      throw new BadRequestException({
+        error: `${parameterName} must be a string`,
+      });
     }
 
     return parameterValue;
-  }
-
-  private reject(message: string): never {
-    throw new BadRequestException({ error: message });
   }
 }

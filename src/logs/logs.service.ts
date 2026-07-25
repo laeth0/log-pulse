@@ -92,13 +92,10 @@ export class LogsService {
       ),
       next_cursor:
         hasMoreResults && lastPageLog
-          ? this.logQueryCursorCodec.encode(
-              {
-                timestamp: lastPageLog.timestamp,
-                id: lastPageLog.id,
-              },
-              logQuery,
-            )
+          ? this.logQueryCursorCodec.encode({
+              timestamp: lastPageLog.timestamp,
+              id: lastPageLog.id,
+            })
           : null,
     };
   }

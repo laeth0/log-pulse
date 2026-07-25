@@ -16,6 +16,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { LogLevel } from '../common/enums/log-level.enum';
 import { IngestLogsDto } from './dto/ingest-logs.dto';
 import { IngestLogsResponseDto } from './dto/ingest-logs-response.dto';
 import { LogAggregateResponseDto } from './dto/log-aggregate-response.dto';
@@ -50,7 +51,7 @@ export class LogsController {
   @ApiQuery({
     name: 'level',
     required: false,
-    enum: ['debug', 'info', 'warn', 'error'],
+    enum: LogLevel,
   })
   @ApiQuery({ name: 'since', required: false, type: String })
   @ApiQuery({ name: 'until', required: false, type: String })
@@ -94,7 +95,7 @@ export class LogsController {
   @ApiQuery({
     name: 'level',
     required: false,
-    enum: ['debug', 'info', 'warn', 'error'],
+    enum: LogLevel,
   })
   @ApiQuery({
     name: 'attr.<key>',

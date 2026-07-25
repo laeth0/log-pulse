@@ -25,17 +25,14 @@ export class LogQueryParser implements PipeTransform<
       'limit',
       'cursor',
     ]);
-    const logFilters = this.logFilterParser.parse(rawQueryParameters);
-    const resultLimit = this.parseLimit(rawQueryParameters.limit);
-    const paginationCursor = this.parseCursor(
-      rawQueryParameters.cursor,
-      logFilters,
-    );
+    const filters = this.logFilterParser.parse(rawQueryParameters);
+    const limit = this.parseLimit(rawQueryParameters.limit);
+    const cursor = this.parseCursor(rawQueryParameters.cursor);
 
     return {
-      ...logFilters,
-      limit: resultLimit,
-      ...(paginationCursor !== undefined && { cursor: paginationCursor }),
+      ...filters,
+      limit,
+      cursor,
     };
   }
 
@@ -45,41 +42,33 @@ export class LogQueryParser implements PipeTransform<
     }
 
     if (typeof rawLimit !== 'string' || !NUMERIC_LIMIT_PATTERN.test(rawLimit)) {
-      this.reject('limit must be numeric');
+      throw new BadRequestException({ error: 'limit must be numeric' });
     }
 
-    const requestedLimit = Number(rawLimit);
-    if (requestedLimit < 1) {
-      this.reject('limit must be greater than zero');
+    const limit = Number(rawLimit);
+    if (limit < 1) {
+      throw new BadRequestException({
+        error: 'limit must be greater than zero',
+      });
     }
 
-    return Math.min(requestedLimit, MAX_LOG_QUERY_LIMIT);
+    return Math.min(limit, MAX_LOG_QUERY_LIMIT);
   }
 
-  private parseCursor(
-    rawCursor: unknown,
-    logFilters: Omit<LogQuery, 'limit' | 'cursor'>,
-  ): LogQuery['cursor'] {
+  private parseCursor(rawCursor: unknown): LogQuery['cursor'] {
     if (rawCursor === undefined) {
       return undefined;
     }
 
     if (typeof rawCursor !== 'string') {
-      this.reject('invalid cursor');
+      throw new BadRequestException({ error: 'invalid cursor' });
     }
 
-    const paginationCursor = this.logQueryCursorCodec.decode(
-      rawCursor,
-      logFilters,
-    );
-    if (!paginationCursor) {
-      this.reject('invalid cursor');
+    const cursor = this.logQueryCursorCodec.decode(rawCursor);
+    if (cursor === null) {
+      throw new BadRequestException({ error: 'invalid cursor' });
     }
 
-    return paginationCursor;
-  }
-
-  private reject(message: string): never {
-    throw new BadRequestException({ error: message });
+    return cursor;
   }
 }
