@@ -6,12 +6,9 @@ import {
 } from '../../common/const/log-aggregate.const';
 import {
   DEFAULT_LOG_QUERY_LIMIT,
-  ISO_TIMESTAMP_SCHEMA,
-  LOG_ATTRIBUTE_QUERY_PREFIX,
-  LOG_LEVEL_SCHEMA,
   MAX_LOG_QUERY_LIMIT,
-  NUMERIC_LIMIT_PATTERN,
 } from '../../common/const/log-query.const';
+import { LogLevel } from '../../common/enums/log-level.enum';
 import { LogAggregateQuery } from '../models/log-aggregate-query';
 import { LogQuery } from '../models/log-query';
 import { LogQueryCursorCodec } from './log-query-cursor.codec';
@@ -42,17 +39,19 @@ export const createLogQuerySchema = (
   z
     .object({
       service: z.string().optional(),
-      level: LOG_LEVEL_SCHEMA.optional(),
-      since: ISO_TIMESTAMP_SCHEMA.transform(
-        (value) => new Date(value),
-      ).optional(),
-      until: ISO_TIMESTAMP_SCHEMA.transform(
-        (value) => new Date(value),
-      ).optional(),
+      level: z.enum(LogLevel).optional(),
+      since: z.iso
+        .datetime({ offset: true })
+        .transform((value) => new Date(value))
+        .optional(),
+      until: z.iso
+        .datetime({ offset: true })
+        .transform((value) => new Date(value))
+        .optional(),
       q: z.string().min(1, 'q must not be empty').optional(),
       limit: z
         .string()
-        .regex(NUMERIC_LIMIT_PATTERN, 'limit must be numeric')
+        .regex(/^\d+$/, 'limit must be numeric')
         .transform(Number)
         .refine((limit) => limit > 0, 'limit must be greater than zero')
         .transform((limit) => Math.min(limit, MAX_LOG_QUERY_LIMIT))
@@ -78,7 +77,7 @@ export const createLogQuerySchema = (
           continue;
         }
 
-        if (!name.startsWith(LOG_ATTRIBUTE_QUERY_PREFIX)) {
+        if (!name.startsWith('attr.')) {
           context.addIssue({
             code: 'custom',
             message: `unknown query parameter: '${name}'`,
@@ -86,7 +85,7 @@ export const createLogQuerySchema = (
           continue;
         }
 
-        if (name === LOG_ATTRIBUTE_QUERY_PREFIX || typeof value !== 'string') {
+        if (name === 'attr.' || typeof value !== 'string') {
           context.addIssue({
             code: 'custom',
             message: `invalid attribute filter: '${name}'`,
@@ -112,19 +111,15 @@ export const createLogQuerySchema = (
       attributes: Object.entries(query)
         .filter(
           (entry): entry is [string, string] =>
-            entry[0].startsWith(LOG_ATTRIBUTE_QUERY_PREFIX) &&
-            typeof entry[1] === 'string',
+            entry[0].startsWith('attr.') && typeof entry[1] === 'string',
         )
-        .map(([name, value]) => [
-          name.slice(LOG_ATTRIBUTE_QUERY_PREFIX.length),
-          value,
-        ]),
+        .map(([name, value]) => [name.slice('attr.'.length), value]),
     }));
 
 export const LOG_AGGREGATE_QUERY_SCHEMA = z
   .object({
     service: z.string().optional(),
-    level: LOG_LEVEL_SCHEMA.optional(),
+    level: z.enum(LogLevel).optional(),
     since: z
       .string({ error: 'since is required' })
       .datetime({ offset: true, error: 'invalid since timestamp' })
@@ -150,7 +145,7 @@ export const LOG_AGGREGATE_QUERY_SCHEMA = z
         continue;
       }
 
-      if (!name.startsWith(LOG_ATTRIBUTE_QUERY_PREFIX)) {
+      if (!name.startsWith('attr.')) {
         context.addIssue({
           code: 'custom',
           message: `unknown query parameter: '${name}'`,
@@ -158,7 +153,7 @@ export const LOG_AGGREGATE_QUERY_SCHEMA = z
         continue;
       }
 
-      if (name === LOG_ATTRIBUTE_QUERY_PREFIX || typeof value !== 'string') {
+      if (name === 'attr.' || typeof value !== 'string') {
         context.addIssue({
           code: 'custom',
           message: `invalid attribute filter: '${name}'`,
@@ -184,11 +179,7 @@ export const LOG_AGGREGATE_QUERY_SCHEMA = z
     attributes: Object.entries(query)
       .filter(
         (entry): entry is [string, string] =>
-          entry[0].startsWith(LOG_ATTRIBUTE_QUERY_PREFIX) &&
-          typeof entry[1] === 'string',
+          entry[0].startsWith('attr.') && typeof entry[1] === 'string',
       )
-      .map(([name, value]) => [
-        name.slice(LOG_ATTRIBUTE_QUERY_PREFIX.length),
-        value,
-      ]),
+      .map(([name, value]) => [name.slice('attr.'.length), value]),
   }));
