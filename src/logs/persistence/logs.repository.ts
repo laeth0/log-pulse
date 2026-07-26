@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { SelectQueryBuilder } from 'typeorm';
 import { Repository } from 'typeorm';
 
 import { Log } from '../entities/log.entity';
@@ -9,7 +8,8 @@ import type { LogQuery } from '../models/log-query';
 
 @Injectable()
 export class LogsRepository {
-  private readonly insertChunkSize = Number(process.env.LOG_INGEST_CHUNK_SIZE) || 1_000;
+  private readonly insertChunkSize =
+    Number(process.env.LOG_INGEST_CHUNK_SIZE) || 1_000;
 
   constructor(
     @InjectRepository(Log)
@@ -91,29 +91,20 @@ export class LogsRepository {
       },
     );
 
-    this.applyCursor(queryBuilder, logQuery);
+    if (logQuery.cursor !== undefined) {
+      queryBuilder.andWhere(
+        '(log.timestamp, log.id) < (:cursorTimestamp, :cursorId)',
+        {
+          cursorTimestamp: logQuery.cursor.timestamp,
+          cursorId: logQuery.cursor.id,
+        },
+      );
+    }
 
     return queryBuilder
       .orderBy('log.timestamp', 'DESC')
       .addOrderBy('log.id', 'DESC')
       .take(logQuery.limit + 1)
       .getMany();
-  }
-
-  private applyCursor(
-    queryBuilder: SelectQueryBuilder<Log>,
-    logQuery: LogQuery,
-  ): void {
-    if (logQuery.cursor === undefined) {
-      return;
-    }
-
-    queryBuilder.andWhere(
-      '(log.timestamp, log.id) < (:cursorTimestamp, :cursorId)',
-      {
-        cursorTimestamp: logQuery.cursor.timestamp,
-        cursorId: logQuery.cursor.id,
-      },
-    );
   }
 }
