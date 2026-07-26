@@ -15,11 +15,6 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "lint:check": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --no-error-on-unmatched-pattern --no-fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "ts-node -r tsconfig-paths/register -r reflect-metadata node_modules/typeorm/cli",
     "migration:generate": "npm run typeorm -- migration:generate -d src/config/data-source.ts src/migrations/%npm_config_name%",
     "migration:run": "npm run typeorm -- migration:run -d src/config/data-source.ts",
@@ -28,8 +23,7 @@
     "migration:create": "npm run typeorm -- migration:create src/migrations/%npm_config_name%",
     "db:create": "ts-node -r tsconfig-paths/register src/scripts/create-database.ts",
     "db:drop": "ts-node -r tsconfig-paths/register src/scripts/drop-database.ts",
-    "typecheck": "tsc --noEmit --pretty false",
-    "verify:static": "npm run format:check && npm run lint:check && npm run typecheck && npm run build"
+    "typecheck": "tsc --noEmit --pretty false"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

@@ -13,7 +13,7 @@ export class LogAggregationQuery {
   constructor(
     @InjectRepository(Log)
     private readonly repository: Repository<Log>,
-  ) {}
+  ) { }
 
   async execute(
     aggregateQuery: LogAggregateQuery,
@@ -24,6 +24,7 @@ export class LogAggregationQuery {
         : aggregateQuery.groupBy === 'level'
           ? 'log.level'
           : null;
+
     const queryBuilder = this.repository
       .createQueryBuilder('log')
       .select(
