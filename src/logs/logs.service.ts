@@ -1,10 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
-import { IngestLogsResponseDto } from './dto/ingest-logs-response.dto';
-import { LogAggregateBucketDto } from './dto/log-aggregate-bucket.dto';
-import { LogAggregateResponseDto } from './dto/log-aggregate-response.dto';
-import { LogResponseDto } from './dto/log-response.dto';
-import { QueryLogsResponseDto } from './dto/query-logs-response.dto';
+import { IngestLogsResponseDto } from './dto/response/ingest-logs-response.dto';
+import { LogAggregateBucketDto } from './dto/response/log-aggregate-bucket.dto';
+import { LogAggregateResponseDto } from './dto/response/log-aggregate-response.dto';
+import { LogResponseDto } from './dto/response/log-response.dto';
+import { QueryLogsResponseDto } from './dto/response/query-logs-response.dto';
 import { Log } from './entities/log.entity';
 import type { LogAggregateQuery } from './models/log-aggregate-query';
 import type { LogAggregateRow } from './models/log-aggregate-row';

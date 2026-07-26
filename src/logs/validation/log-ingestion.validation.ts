@@ -3,8 +3,8 @@ import { z } from 'zod';
 
 import { MAX_LOG_FUTURE_OFFSET_MILLISECONDS } from '../../common/const/log-ingestion.const';
 import { LogLevel } from '../../common/enums/log-level.enum';
-import type { RejectedLogDto } from '../dto/rejected-log.dto';
 import type { LogEntry } from '../models/log-entry';
+import type { RejectedLog } from '../models/rejected-log';
 import type { ValidatedIngestLogs } from '../models/validated-ingest-logs';
 
 const LOG_ENTRY_SCHEMA = z.object({
@@ -37,7 +37,7 @@ export function parseIngestLogs(
   const latestTimestamp =
     currentTime.getTime() + MAX_LOG_FUTURE_OFFSET_MILLISECONDS;
   const logs: LogEntry[] = [];
-  const rejected: RejectedLogDto[] = [];
+  const rejected: RejectedLog[] = [];
 
   for (const [index, rawLog] of batch.data.logs.entries()) {
     const parsedLog = LOG_ENTRY_SCHEMA.safeParse(rawLog);

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-/** Count for one time bucket and optional group. */
+/** HTTP representation of one aggregate time bucket. */
 export class LogAggregateBucketDto {
   @ApiProperty({ example: '2026-07-20T14:00:00.000Z' })
   readonly start!: string;

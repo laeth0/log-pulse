@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { LogAggregateBucketDto } from './log-aggregate-bucket.dto';
 
-/** Time-bucketed log count response. */
+/** HTTP response containing time-bucketed log counts. */
 export class LogAggregateResponseDto {
   @ApiProperty({ type: [LogAggregateBucketDto] })
   readonly buckets!: readonly LogAggregateBucketDto[];

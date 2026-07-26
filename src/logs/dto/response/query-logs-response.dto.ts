@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { LogResponseDto } from './log-response.dto';
 
-/** Cursor-paginated log query response. */
+/** HTTP response for a cursor-paginated log query. */
 export class QueryLogsResponseDto {
   @ApiProperty({ type: [LogResponseDto] })
   readonly logs!: readonly LogResponseDto[];

@@ -18,10 +18,10 @@ import {
 
 import { LogLevel } from '../common/enums/log-level.enum';
 import { Clock } from '../common/time/clock';
-import { IngestLogsDto } from './dto/ingest-logs.dto';
-import { IngestLogsResponseDto } from './dto/ingest-logs-response.dto';
-import { LogAggregateResponseDto } from './dto/log-aggregate-response.dto';
-import { QueryLogsResponseDto } from './dto/query-logs-response.dto';
+import { IngestLogsDto } from './dto/request/ingest-logs.dto';
+import { IngestLogsResponseDto } from './dto/response/ingest-logs-response.dto';
+import { LogAggregateResponseDto } from './dto/response/log-aggregate-response.dto';
+import { QueryLogsResponseDto } from './dto/response/query-logs-response.dto';
 import { LogsService } from './logs.service';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 import {
