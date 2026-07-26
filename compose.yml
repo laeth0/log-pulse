@@ -18,7 +18,6 @@ x-application-environment: &application-environment
   LOG_RETENTION_MAX_BATCHES: ${LOG_RETENTION_MAX_BATCHES:-400}
   LOG_RETENTION_MAX_RUN_MS: ${LOG_RETENTION_MAX_RUN_MS:-3300000}
   ALLOW_DATABASE_DROP: ${ALLOW_DATABASE_DROP:-false}
-  ALLOW_PERFORMANCE_RESET: ${ALLOW_PERFORMANCE_RESET:-false}
 
 services:
   migrate:
@@ -26,7 +25,14 @@ services:
       context: .
       dockerfile: Dockerfile
     environment: *application-environment
-    command: ['node', 'dist/scripts/run-migrations.js']
+    command:
+      [
+        'node',
+        'node_modules/typeorm/cli.js',
+        'migration:run',
+        '-d',
+        'dist/config/data-source.js',
+      ]
     depends_on:
       postgres:
         condition: service_healthy

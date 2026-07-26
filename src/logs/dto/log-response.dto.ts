@@ -5,7 +5,10 @@ import type { LogAttributes } from '../entities/log.entity';
 
 /** Public representation of a stored log. */
 export class LogResponseDto {
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiProperty({
+    format: 'uuid',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
   readonly id!: string;
 
   @ApiProperty({ example: '2026-07-20T14:32:01.123Z' })

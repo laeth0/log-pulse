@@ -2,12 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import {
-  LOG_AGGREGATE_BUCKET_EXPRESSION,
-  LOG_AGGREGATE_GROUP_EXPRESSIONS,
-  LOG_AGGREGATE_INTERVALS,
-  LOG_AGGREGATE_ORIGIN,
-} from '../../common/const/log-aggregate.const';
+import { LOG_AGGREGATE_INTERVALS } from '../../common/const/log-aggregate.const';
 import { Log } from '../entities/log.entity';
 import type { LogAggregateQuery } from '../models/log-aggregate-query';
 import type { LogAggregateRow } from '../models/log-aggregate-row';
@@ -23,20 +18,31 @@ export class LogAggregationQuery {
   async execute(
     aggregateQuery: LogAggregateQuery,
   ): Promise<StoredLogAggregate[]> {
-    const groupByExpression = aggregateQuery.groupBy
-      ? LOG_AGGREGATE_GROUP_EXPRESSIONS[aggregateQuery.groupBy]
-      : null;
+    const groupByExpression =
+      aggregateQuery.groupBy === 'service'
+        ? 'log.service'
+        : aggregateQuery.groupBy === 'level'
+          ? 'log.level'
+          : null;
     const queryBuilder = this.repository
       .createQueryBuilder('log')
-      .select(LOG_AGGREGATE_BUCKET_EXPRESSION, 'start')
+      .select(
+        'date_bin(CAST(:bucketInterval AS interval), log.timestamp, CAST(:bucketOrigin AS timestamptz))',
+        'start',
+      )
       .addSelect(groupByExpression ?? 'NULL::text', 'group')
       .addSelect('COUNT(*)::bigint', 'count')
       .setParameters({
         bucketInterval: LOG_AGGREGATE_INTERVALS[aggregateQuery.bucket],
-        bucketOrigin: LOG_AGGREGATE_ORIGIN,
+        bucketOrigin: '1970-01-01T00:00:00.000Z',
       })
-      .groupBy(LOG_AGGREGATE_BUCKET_EXPRESSION)
-      .orderBy(LOG_AGGREGATE_BUCKET_EXPRESSION, 'ASC');
+      .groupBy(
+        'date_bin(CAST(:bucketInterval AS interval), log.timestamp, CAST(:bucketOrigin AS timestamptz))',
+      )
+      .orderBy(
+        'date_bin(CAST(:bucketInterval AS interval), log.timestamp, CAST(:bucketOrigin AS timestamptz))',
+        'ASC',
+      );
 
     if (groupByExpression) {
       queryBuilder
