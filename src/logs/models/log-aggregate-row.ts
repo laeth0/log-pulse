@@ -1,6 +1,6 @@
-/** Raw PostgreSQL aggregation result before API mapping. */
+/** Normalized aggregate result returned by the logs repository. */
 export type LogAggregateRow = Readonly<{
-  start: Date | string;
+  start: Date;
   group: string | null;
-  count: string;
+  count: number;
 }>;

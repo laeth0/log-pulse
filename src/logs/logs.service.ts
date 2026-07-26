@@ -7,10 +7,9 @@ import { LogResponseDto } from './dto/log-response.dto';
 import { QueryLogsResponseDto } from './dto/query-logs-response.dto';
 import { Log } from './entities/log.entity';
 import type { LogAggregateQuery } from './models/log-aggregate-query';
+import type { LogAggregateRow } from './models/log-aggregate-row';
 import type { LogQuery } from './models/log-query';
 import type { ValidatedIngestLogs } from './models/validated-ingest-logs';
-import type { StoredLogAggregate } from './persistence/persistence.types';
-import { LogAggregationQuery } from './persistence/log-aggregation.query';
 import { LogsRepository } from './persistence/logs.repository';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 
@@ -18,7 +17,6 @@ import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 export class LogsService {
   constructor(
     private readonly logsRepository: LogsRepository,
-    private readonly logAggregationQuery: LogAggregationQuery,
     private readonly logQueryCursorCodec: LogQueryCursorCodec,
   ) {}
 
@@ -51,12 +49,11 @@ export class LogsService {
     aggregateQuery: LogAggregateQuery,
   ): Promise<LogAggregateResponseDto> {
     try {
-      const aggregateRows =
-        await this.logAggregationQuery.execute(aggregateQuery);
+      const aggregateRows = await this.logsRepository.aggregate(aggregateQuery);
 
       return {
         buckets: aggregateRows.map(
-          (aggregateRow: StoredLogAggregate): LogAggregateBucketDto =>
+          (aggregateRow: LogAggregateRow): LogAggregateBucketDto =>
             this.mapAggregateRowToBucket(aggregateRow),
         ),
       };
@@ -66,7 +63,7 @@ export class LogsService {
   }
 
   private mapAggregateRowToBucket(
-    aggregateRow: StoredLogAggregate,
+    aggregateRow: LogAggregateRow,
   ): LogAggregateBucketDto {
     return {
       start: aggregateRow.start.toISOString(),
