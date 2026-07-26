@@ -38,7 +38,7 @@ Table logs {
   indexes {
     (timestamp, id) [
       name: 'idx_logs_timestamp_id',
-      note: 'Candidate descending B-tree for stable keyset pagination, range scans, aggregation, and retention; final inclusion requires EXPLAIN evidence.'
+      note: 'Candidate descending B-tree for stable keyset pagination, range scans, and aggregation; final inclusion requires EXPLAIN evidence.'
     ]
 
     (service, timestamp, id) [

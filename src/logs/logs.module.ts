@@ -8,9 +8,6 @@ import { LogsController } from './logs.controller';
 import { LogsService } from './logs.service';
 import { LogsRepository } from './persistence/logs.repository';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
-import { LogRetentionConfig } from './retention/log-retention.config';
-import { LogRetentionRepository } from './retention/log-retention.repository';
-import { LogRetentionScheduler } from './retention/log-retention.scheduler';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Log])],
@@ -19,9 +16,6 @@ import { LogRetentionScheduler } from './retention/log-retention.scheduler';
     LogsService,
     LogsRepository,
     LogQueryCursorCodec,
-    LogRetentionConfig,
-    LogRetentionRepository,
-    LogRetentionScheduler,
     { provide: Clock, useClass: SystemClock },
   ],
 })
