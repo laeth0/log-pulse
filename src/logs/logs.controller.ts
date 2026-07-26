@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -22,17 +23,25 @@ import { IngestLogsResponseDto } from './dto/ingest-logs-response.dto';
 import { LogAggregateResponseDto } from './dto/log-aggregate-response.dto';
 import { QueryLogsResponseDto } from './dto/query-logs-response.dto';
 import { LogsService } from './logs.service';
-import type { LogAggregateQuery } from './models/log-aggregate-query';
-import type { LogQuery } from './models/log-query';
 import type { ValidatedIngestLogs } from './models/validated-ingest-logs';
-import { LogAggregateQueryParser } from './query/log-aggregate-query.parser';
-import { LogQueryParser } from './query/log-query.parser';
+import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
+import {
+  createLogQuerySchema,
+  LOG_AGGREGATE_QUERY_SCHEMA,
+} from './query/log-query.schema';
 import { LogBatchValidator } from './validation/log-batch.validator';
 
 @ApiTags('logs')
 @Controller('logs')
 export class LogsController {
-  constructor(private readonly logsService: LogsService) {}
+  private readonly logQuerySchema;
+
+  constructor(
+    private readonly logsService: LogsService,
+    logQueryCursorCodec: LogQueryCursorCodec,
+  ) {
+    this.logQuerySchema = createLogQuerySchema(logQueryCursorCodec);
+  }
 
   @Post()
   @HttpCode(HttpStatus.OK)
@@ -72,9 +81,17 @@ export class LogsController {
   @ApiOkResponse({ type: QueryLogsResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid query parameters.' })
   queryLogs(
-    @Query(LogQueryParser) logQuery: LogQuery,
+    @Query() rawQuery: Readonly<Record<string, unknown>>,
   ): Promise<QueryLogsResponseDto> {
-    return this.logsService.queryLogs(logQuery);
+    const result = this.logQuerySchema.safeParse(rawQuery);
+
+    if (!result.success) {
+      throw new BadRequestException({
+        error: result.error.issues[0]?.message ?? 'invalid query parameters',
+      });
+    }
+
+    return this.logsService.queryLogs(result.data);
   }
 
   @Get('aggregate')
@@ -107,8 +124,16 @@ export class LogsController {
   @ApiOkResponse({ type: LogAggregateResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid aggregation parameters.' })
   aggregateLogs(
-    @Query(LogAggregateQueryParser) aggregateQuery: LogAggregateQuery,
+    @Query() rawQuery: Readonly<Record<string, unknown>>,
   ): Promise<LogAggregateResponseDto> {
-    return this.logsService.aggregateLogs(aggregateQuery);
+    const result = LOG_AGGREGATE_QUERY_SCHEMA.safeParse(rawQuery);
+
+    if (!result.success) {
+      throw new BadRequestException({
+        error: result.error.issues[0]?.message ?? 'invalid query parameters',
+      });
+    }
+
+    return this.logsService.aggregateLogs(result.data);
   }
 }

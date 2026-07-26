@@ -8,10 +8,7 @@ import { LogsController } from './logs.controller';
 import { LogsService } from './logs.service';
 import { LogsRepository } from './persistence/logs.repository';
 import { LogAggregationQuery } from './persistence/log-aggregation.query';
-import { LogAggregateQueryParser } from './query/log-aggregate-query.parser';
-import { LogFilterParser } from './query/log-filter.parser';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
-import { LogQueryParser } from './query/log-query.parser';
 import { LogRetentionConfig } from './retention/log-retention.config';
 import { LogRetentionRepository } from './retention/log-retention.repository';
 import { LogRetentionScheduler } from './retention/log-retention.scheduler';
@@ -30,9 +27,6 @@ import { LogEntryValidator } from './validation/log-entry.validator';
     LogEntryValidator,
     LogTimestampValidator,
     LogQueryCursorCodec,
-    LogFilterParser,
-    LogQueryParser,
-    LogAggregateQueryParser,
     LogRetentionConfig,
     LogRetentionRepository,
     LogRetentionScheduler,
