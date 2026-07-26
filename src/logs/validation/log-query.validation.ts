@@ -9,7 +9,7 @@ import { LogLevel } from '../../common/enums/log-level.enum';
 import type { LogAggregateQuery } from '../models/log-aggregate-query';
 import type { LogAttributeFilter } from '../models/log-filters';
 import type { LogQuery } from '../models/log-query';
-import { LogQueryCursorCodec } from '../query/log-query-cursor.codec';
+import { LogQueryCursorCodec } from '../log-query-cursor.codec';
 
 const LOG_QUERY_PARAMETERS = new Set<string>([
   'service',

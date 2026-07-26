@@ -6,12 +6,12 @@ import { LogAggregateResponseDto } from './dto/response/log-aggregate-response.d
 import { LogResponseDto } from './dto/response/log-response.dto';
 import { QueryLogsResponseDto } from './dto/response/query-logs-response.dto';
 import { Log } from './entities/log.entity';
+import { LogQueryCursorCodec } from './log-query-cursor.codec';
 import type { LogAggregateQuery } from './models/log-aggregate-query';
 import type { LogAggregateRow } from './models/log-aggregate-row';
 import type { LogQuery } from './models/log-query';
 import type { ValidatedIngestLogs } from './models/validated-ingest-logs';
 import { LogsRepository } from './logs.repository';
-import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 
 @Injectable()
 export class LogsService {

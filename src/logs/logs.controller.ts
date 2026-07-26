@@ -22,8 +22,8 @@ import { IngestLogsDto } from './dto/request/ingest-logs.dto';
 import { IngestLogsResponseDto } from './dto/response/ingest-logs-response.dto';
 import { LogAggregateResponseDto } from './dto/response/log-aggregate-response.dto';
 import { QueryLogsResponseDto } from './dto/response/query-logs-response.dto';
+import { LogQueryCursorCodec } from './log-query-cursor.codec';
 import { LogsService } from './logs.service';
-import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 import {
   parseLogAggregateQuery,
   parseLogQuery,

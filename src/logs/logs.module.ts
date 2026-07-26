@@ -5,9 +5,9 @@ import { Clock } from '../common/time/clock';
 import { SystemClock } from '../common/time/system-clock';
 import { Log } from './entities/log.entity';
 import { LogsController } from './logs.controller';
+import { LogQueryCursorCodec } from './log-query-cursor.codec';
 import { LogsRepository } from './logs.repository';
 import { LogsService } from './logs.service';
-import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Log])],
