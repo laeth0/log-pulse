@@ -33,7 +33,7 @@ const cases: readonly ExplainCase[] = [
       new Date('2020-01-01T00:00:00.000Z'),
       new Date('2100-01-01T00:00:00.000Z'),
       new Date('2100-01-01T00:00:00.000Z'),
-      '9223372036854775807',
+      'ffffffff-ffff-4fff-bfff-ffffffffffff',
     ],
   },
   {

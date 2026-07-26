@@ -19,7 +19,7 @@ async function seed(): Promise<void> {
           'Set ALLOW_PERFORMANCE_RESET=true before using --reset',
         );
       }
-      await AppDataSource.query('TRUNCATE TABLE logs RESTART IDENTITY');
+      await AppDataSource.query('TRUNCATE TABLE logs');
     } else {
       const currentRows: unknown = await AppDataSource.query(
         'SELECT COUNT(*)::int AS count FROM logs',

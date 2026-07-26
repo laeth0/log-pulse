@@ -33,6 +33,15 @@ async function verifySchema(): Promise<void> {
               'created_at'
             )
         )
+        AND EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'logs'
+            AND column_name = 'id'
+            AND data_type = 'uuid'
+            AND column_default = 'gen_random_uuid()'
+        )
         AND (
           SELECT COUNT(*) = 4
           FROM pg_indexes
