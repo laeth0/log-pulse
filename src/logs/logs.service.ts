@@ -10,7 +10,7 @@ import type { LogAggregateQuery } from './models/log-aggregate-query';
 import type { LogAggregateRow } from './models/log-aggregate-row';
 import type { LogQuery } from './models/log-query';
 import type { ValidatedIngestLogs } from './models/validated-ingest-logs';
-import { LogsRepository } from './persistence/logs.repository';
+import { LogsRepository } from './logs.repository';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 
 @Injectable()

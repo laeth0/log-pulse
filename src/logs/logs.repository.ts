@@ -2,18 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { LOG_AGGREGATE_INTERVALS } from '../../common/const/log-aggregate.const';
-import { Log } from '../entities/log.entity';
-import type { LogAggregateQuery } from '../models/log-aggregate-query';
-import type { LogAggregateRow } from '../models/log-aggregate-row';
-import type { LogEntry } from '../models/log-entry';
-import type { LogQuery } from '../models/log-query';
-
-type RawLogAggregateRow = Readonly<{
-  start: Date | string;
-  group: string | null;
-  count: string;
-}>;
+import { LOG_AGGREGATE_INTERVALS } from '../common/const/log-aggregate.const';
+import { Log } from './entities/log.entity';
+import type { LogAggregateQuery } from './models/log-aggregate-query';
+import type { LogAggregateRow } from './models/log-aggregate-row';
+import type { LogEntry } from './models/log-entry';
+import type { LogQuery } from './models/log-query';
+import type { RawLogAggregateRow } from './models/raw-log-aggregate-row';
 
 @Injectable()
 export class LogsRepository {

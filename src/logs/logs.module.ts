@@ -5,8 +5,8 @@ import { Clock } from '../common/time/clock';
 import { SystemClock } from '../common/time/system-clock';
 import { Log } from './entities/log.entity';
 import { LogsController } from './logs.controller';
+import { LogsRepository } from './logs.repository';
 import { LogsService } from './logs.service';
-import { LogsRepository } from './persistence/logs.repository';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 
 @Module({
