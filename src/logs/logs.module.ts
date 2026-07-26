@@ -12,9 +12,6 @@ import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 import { LogRetentionConfig } from './retention/log-retention.config';
 import { LogRetentionRepository } from './retention/log-retention.repository';
 import { LogRetentionScheduler } from './retention/log-retention.scheduler';
-import { LogTimestampValidator } from './validation/log-timestamp.validator';
-import { LogBatchValidator } from './validation/log-batch.validator';
-import { LogEntryValidator } from './validation/log-entry.validator';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Log])],
@@ -23,9 +20,6 @@ import { LogEntryValidator } from './validation/log-entry.validator';
     LogsService,
     LogsRepository,
     LogAggregationQuery,
-    LogBatchValidator,
-    LogEntryValidator,
-    LogTimestampValidator,
     LogQueryCursorCodec,
     LogRetentionConfig,
     LogRetentionRepository,

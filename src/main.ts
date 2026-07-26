@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { json } from 'express';
 import type { INestApplication } from '@nestjs/common';
@@ -22,14 +22,6 @@ async function bootstrap(): Promise<void> {
       }),
     );
     app.useGlobalFilters(new ApiExceptionFilter(app.get(HttpAdapterHost)));
-
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: false,
-        transform: true,
-      }),
-    );
 
     const port = Number(process.env.PORT) || 8080;
     await app.listen(port, '0.0.0.0');

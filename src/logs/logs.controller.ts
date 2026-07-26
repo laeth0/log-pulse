@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -18,40 +17,37 @@ import {
 } from '@nestjs/swagger';
 
 import { LogLevel } from '../common/enums/log-level.enum';
+import { Clock } from '../common/time/clock';
 import { IngestLogsDto } from './dto/ingest-logs.dto';
 import { IngestLogsResponseDto } from './dto/ingest-logs-response.dto';
 import { LogAggregateResponseDto } from './dto/log-aggregate-response.dto';
 import { QueryLogsResponseDto } from './dto/query-logs-response.dto';
 import { LogsService } from './logs.service';
-import type { ValidatedIngestLogs } from './models/validated-ingest-logs';
 import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 import {
-  createLogQuerySchema,
-  LOG_AGGREGATE_QUERY_SCHEMA,
+  parseLogAggregateQuery,
+  parseLogQuery,
 } from './query/log-query.schema';
-import { LogBatchValidator } from './validation/log-batch.validator';
+import { parseIngestLogs } from './validation/log-ingestion.validation';
 
 @ApiTags('logs')
 @Controller('logs')
 export class LogsController {
-  private readonly logQuerySchema;
-
   constructor(
     private readonly logsService: LogsService,
-    logQueryCursorCodec: LogQueryCursorCodec,
-  ) {
-    this.logQuerySchema = createLogQuerySchema(logQueryCursorCodec);
-  }
+    private readonly logQueryCursorCodec: LogQueryCursorCodec,
+    private readonly clock: Clock,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Ingest a batch of structured logs' })
   @ApiBody({ type: IngestLogsDto })
   @ApiOkResponse({ type: IngestLogsResponseDto })
-  ingestLogs(
-    @Body(LogBatchValidator) ingestionRequest: ValidatedIngestLogs,
-  ): Promise<IngestLogsResponseDto> {
-    return this.logsService.ingestLogs(ingestionRequest);
+  ingestLogs(@Body() request: unknown): Promise<IngestLogsResponseDto> {
+    return this.logsService.ingestLogs(
+      parseIngestLogs(request, this.clock.now()),
+    );
   }
 
   @Get()
@@ -83,15 +79,9 @@ export class LogsController {
   queryLogs(
     @Query() rawQuery: Readonly<Record<string, unknown>>,
   ): Promise<QueryLogsResponseDto> {
-    const result = this.logQuerySchema.safeParse(rawQuery);
-
-    if (!result.success) {
-      throw new BadRequestException({
-        error: result.error.issues[0]?.message ?? 'invalid query parameters',
-      });
-    }
-
-    return this.logsService.queryLogs(result.data);
+    return this.logsService.queryLogs(
+      parseLogQuery(rawQuery, this.logQueryCursorCodec),
+    );
   }
 
   @Get('aggregate')
@@ -126,14 +116,6 @@ export class LogsController {
   aggregateLogs(
     @Query() rawQuery: Readonly<Record<string, unknown>>,
   ): Promise<LogAggregateResponseDto> {
-    const result = LOG_AGGREGATE_QUERY_SCHEMA.safeParse(rawQuery);
-
-    if (!result.success) {
-      throw new BadRequestException({
-        error: result.error.issues[0]?.message ?? 'invalid query parameters',
-      });
-    }
-
-    return this.logsService.aggregateLogs(result.data);
+    return this.logsService.aggregateLogs(parseLogAggregateQuery(rawQuery));
   }
 }
