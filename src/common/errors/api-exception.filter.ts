@@ -24,7 +24,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+        : isMalformedJsonError(exception)
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
     const responseBody = this.createResponseBody(exception, status);
 
     if (status >= 500) {
@@ -46,6 +48,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
     status: number,
   ): object | StandardErrorBody {
     if (!(exception instanceof HttpException)) {
+      if (isMalformedJsonError(exception)) {
+        return { error: 'malformed JSON' };
+      }
+
       return {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         message: 'Internal server error',
@@ -62,4 +68,14 @@ export class ApiExceptionFilter implements ExceptionFilter {
       message: explicitResponse,
     };
   }
+}
+
+function isMalformedJsonError(
+  exception: unknown,
+): exception is SyntaxError & { status: number } {
+  return (
+    exception instanceof SyntaxError &&
+    'status' in exception &&
+    exception.status === HttpStatus.BAD_REQUEST
+  );
 }
