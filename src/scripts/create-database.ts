@@ -1,60 +1,49 @@
-import 'dotenv/config';
+import * as path from 'path';
 
-import { Client as PgClient } from 'pg';
-import type { ClientConfig } from 'pg';
+import * as dotenv from 'dotenv';
+import { Client } from 'pg';
 
-const SIMPLE_POSTGRES_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 async function createDatabase(): Promise<void> {
-  const databaseName = process.env.DB_NAME ?? 'log_pulse';
-  const quotedDatabaseName = quoteDatabaseIdentifier(databaseName);
-  const client = new PgClient(createAdminClientOptions());
+  const dbName = process.env.DB_NAME;
+
+  // CREATE DATABASE cannot target the connected database, so use PostgreSQL's
+  // maintenance database for this operation.
+  const client = new Client({
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT
+      ? Number.parseInt(process.env.DB_PORT, 10)
+      : undefined,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: 'postgres',
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  });
 
   await client.connect();
 
   try {
-    const existingDatabaseResult = await client.query(
-      `SELECT 1 FROM pg_database WHERE datname = $1`,
-      [databaseName],
+    const { rows } = await client.query(
+      'SELECT 1 FROM pg_database WHERE datname = $1',
+      [dbName],
     );
 
-    if ((existingDatabaseResult.rowCount ?? 0) > 0) {
-      console.log(
-        `Database "${databaseName}" already exists — skipping creation.`,
-      );
-    } else {
-      await client.query(`CREATE DATABASE ${quotedDatabaseName}`);
-      console.log(`Database "${databaseName}" created successfully.`);
+    if (rows.length > 0) {
+      console.log(`ℹ️ Database "${dbName}" already exists, skipping creation`);
+      return;
     }
+
+    await client.query(`CREATE DATABASE "${dbName}"`);
+    console.log(`✅ Database "${dbName}" created`);
   } finally {
     await client.end();
   }
 }
 
-createDatabase().catch((error: unknown) => {
-  console.error('Failed to create database:', describeError(error));
-  process.exit(1);
-});
-
-function createAdminClientOptions(): ClientConfig {
-  return {
-    host: process.env.DB_HOST ?? 'localhost',
-    port: Number(process.env.DB_PORT) || 5432,
-    user: process.env.DB_USER ?? 'postgres',
-    password: process.env.DB_PASS ?? '',
-    database: 'postgres',
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  };
-}
-
-function quoteDatabaseIdentifier(databaseName: string): string {
-  if (!SIMPLE_POSTGRES_IDENTIFIER.test(databaseName)) {
-    throw new Error('DB_NAME must be a simple PostgreSQL identifier');
-  }
-
-  return `"${databaseName}"`;
-}
-
-function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : 'Unknown error';
+if (require.main === module) {
+  createDatabase().catch((error: unknown) => {
+    console.error('❌ Failed to create database:', error);
+    process.exit(1);
+  });
 }
