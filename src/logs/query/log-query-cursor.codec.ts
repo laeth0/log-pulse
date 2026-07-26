@@ -4,7 +4,7 @@ import {
   BASE64_URL_PATTERN,
   LOG_QUERY_CURSOR_SCHEMA,
   MAX_LOG_QUERY_CURSOR_LENGTH,
-} from '../../common/const/log-query-cursor.const';
+} from '../validation/log-query-cursor.schema';
 import type { LogQueryCursor } from '../models/log-query-cursor';
 
 /** Encodes and safely decodes opaque keyset-pagination cursors. */

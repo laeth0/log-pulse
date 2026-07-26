@@ -27,7 +27,7 @@ import { LogQueryCursorCodec } from './query/log-query-cursor.codec';
 import {
   parseLogAggregateQuery,
   parseLogQuery,
-} from './query/log-query.schema';
+} from './validation/log-query.validation';
 import { parseIngestLogs } from './validation/log-ingestion.validation';
 
 @ApiTags('logs')
@@ -45,9 +45,9 @@ export class LogsController {
   @ApiBody({ type: IngestLogsDto })
   @ApiOkResponse({ type: IngestLogsResponseDto })
   ingestLogs(@Body() request: unknown): Promise<IngestLogsResponseDto> {
-    return this.logsService.ingestLogs(
-      parseIngestLogs(request, this.clock.now()),
-    );
+    const ingestionRequest = parseIngestLogs(request, this.clock.now());
+
+    return this.logsService.ingestLogs(ingestionRequest);
   }
 
   @Get()
@@ -79,9 +79,9 @@ export class LogsController {
   queryLogs(
     @Query() rawQuery: Readonly<Record<string, unknown>>,
   ): Promise<QueryLogsResponseDto> {
-    return this.logsService.queryLogs(
-      parseLogQuery(rawQuery, this.logQueryCursorCodec),
-    );
+    const logQuery = parseLogQuery(rawQuery, this.logQueryCursorCodec);
+
+    return this.logsService.queryLogs(logQuery);
   }
 
   @Get('aggregate')
@@ -116,6 +116,8 @@ export class LogsController {
   aggregateLogs(
     @Query() rawQuery: Readonly<Record<string, unknown>>,
   ): Promise<LogAggregateResponseDto> {
-    return this.logsService.aggregateLogs(parseLogAggregateQuery(rawQuery));
+    const aggregateQuery = parseLogAggregateQuery(rawQuery);
+
+    return this.logsService.aggregateLogs(aggregateQuery);
   }
 }

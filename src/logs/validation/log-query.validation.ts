@@ -2,10 +2,6 @@ import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
 import {
-  LOG_AGGREGATE_BUCKETS,
-  LOG_AGGREGATE_GROUPS,
-} from '../../common/const/log-aggregate.const';
-import {
   DEFAULT_LOG_QUERY_LIMIT,
   MAX_LOG_QUERY_LIMIT,
 } from '../../common/const/log-query.const';
@@ -13,7 +9,7 @@ import { LogLevel } from '../../common/enums/log-level.enum';
 import type { LogAggregateQuery } from '../models/log-aggregate-query';
 import type { LogAttributeFilter } from '../models/log-filters';
 import type { LogQuery } from '../models/log-query';
-import { LogQueryCursorCodec } from './log-query-cursor.codec';
+import { LogQueryCursorCodec } from '../query/log-query-cursor.codec';
 
 const LOG_QUERY_PARAMETERS = new Set<string>([
   'service',
@@ -63,11 +59,11 @@ const LOG_AGGREGATE_QUERY_SCHEMA = z.object({
     .datetime({ offset: true, error: 'invalid until timestamp' })
     .transform((value) => new Date(value)),
   q: z.string().min(1, 'q must not be empty').optional(),
-  bucket: z.enum(LOG_AGGREGATE_BUCKETS, {
+  bucket: z.enum(['1m', '5m', '1h', '1d'], {
     error: 'bucket must be one of: 1m, 5m, 1h, 1d',
   }),
   group_by: z
-    .enum(LOG_AGGREGATE_GROUPS, {
+    .enum(['service', 'level'], {
       error: 'group_by must be one of: service, level',
     })
     .optional(),
