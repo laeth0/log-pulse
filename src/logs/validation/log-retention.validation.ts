@@ -13,9 +13,7 @@ const LOG_RETENTION_SCHEMA = z.object({
     .default(3_300_000),
 });
 
-export type LogRetentionConfiguration = z.infer<
-  typeof LOG_RETENTION_SCHEMA
->;
+export type LogRetentionConfiguration = z.infer<typeof LOG_RETENTION_SCHEMA>;
 
 export function parseLogRetentionConfiguration(
   environment: Readonly<Record<string, string | undefined>>,
