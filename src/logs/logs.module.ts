@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Clock } from '../common/time/clock';
 import { SystemClock } from '../common/time/system-clock';
 import { Log } from './entities/log.entity';
+import { LogRetentionJob } from './log-retention.job';
 import { LogsController } from './logs.controller';
 import { LogQueryCursorCodec } from './log-query-cursor.codec';
 import { LogsRepository } from './logs.repository';
@@ -16,6 +17,7 @@ import { LogsService } from './logs.service';
     LogsService,
     LogsRepository,
     LogQueryCursorCodec,
+    LogRetentionJob,
     { provide: Clock, useClass: SystemClock },
   ],
 })

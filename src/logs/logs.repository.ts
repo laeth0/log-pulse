@@ -40,6 +40,37 @@ export class LogsRepository {
     });
   }
 
+  async deleteExpiredBatch(
+    expirationThreshold: Date,
+    batchSize: number,
+  ): Promise<number> {
+    const [result] = await this.repository.query<
+      Array<{ deletedCount: number }>
+    >(
+      `
+        WITH expired_logs AS (
+          SELECT id
+          FROM logs
+          WHERE timestamp < $1
+          ORDER BY timestamp ASC, id ASC
+          LIMIT $2
+          FOR UPDATE SKIP LOCKED
+        ),
+        deleted_logs AS (
+          DELETE FROM logs AS log
+          USING expired_logs
+          WHERE log.id = expired_logs.id
+          RETURNING log.id
+        )
+        SELECT COUNT(*)::int AS "deletedCount"
+        FROM deleted_logs
+      `,
+      [expirationThreshold, batchSize],
+    );
+
+    return result?.deletedCount ?? 0;
+  }
+
   async findPage(logQuery: LogQuery): Promise<Log[]> {
     const queryBuilder = this.repository
       .createQueryBuilder('log')

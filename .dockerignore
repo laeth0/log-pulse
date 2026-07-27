@@ -1,0 +1,21 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+node_modules
+dist
+build
+coverage
+test
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+.idea
+.vscode
+README.md
+Final Project.md
+ProjectSchema.dbml

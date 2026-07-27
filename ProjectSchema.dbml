@@ -38,23 +38,23 @@ Table logs {
   indexes {
     (timestamp, id) [
       name: 'idx_logs_timestamp_id',
-      note: 'Candidate descending B-tree for stable keyset pagination, range scans, and aggregation; final inclusion requires EXPLAIN evidence.'
+      note: 'B-tree supporting retention scans, time ranges, aggregation, and stable keyset pagination in either scan direction.'
     ]
 
     (service, timestamp, id) [
       name: 'idx_logs_service_timestamp_id',
-      note: 'Candidate B-tree for service filtering and stable timestamp/id ordering. Final inclusion requires EXPLAIN evidence.'
+      note: 'B-tree for service equality followed by time ranges and stable timestamp/id ordering.'
     ]
 
     (level, timestamp, id) [
       name: 'idx_logs_level_timestamp_id',
-      note: 'Candidate B-tree for level plus time/cursor patterns. Final inclusion requires EXPLAIN evidence.'
+      note: 'B-tree for level equality followed by time ranges and stable timestamp/id ordering.'
     ]
 
     message [
       name: 'idx_logs_message_trgm',
       type: gin,
-      note: 'Candidate GIN using gin_trgm_ops for literal case-insensitive substring filters. Final inclusion requires EXPLAIN evidence.'
+      note: 'GIN using gin_trgm_ops for literal case-insensitive substring filters.'
     ]
 
   }

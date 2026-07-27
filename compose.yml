@@ -1,0 +1,53 @@
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-log_pulse}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:?Set DB_PASS in your .env file}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:?Set DB_PASS in your .env file}
+      DB_NAME: ${DB_NAME:-log_pulse}
+      DB_SSL: 'false'
+      DB_POOL_MAX: ${DB_POOL_MAX:-20}
+      DB_CONNECTION_TIMEOUT_MS: ${DB_CONNECTION_TIMEOUT_MS:-5000}
+      DB_IDLE_TIMEOUT_MS: ${DB_IDLE_TIMEOUT_MS:-30000}
+      HTTP_BODY_LIMIT_BYTES: ${HTTP_BODY_LIMIT_BYTES:-52428800}
+      LOG_INGEST_CHUNK_SIZE: ${LOG_INGEST_CHUNK_SIZE:-1000}
+      LOG_RETENTION_CRON: '${LOG_RETENTION_CRON:-0 0 * * * *}'
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
+      LOG_RETENTION_BATCH_SIZE: ${LOG_RETENTION_BATCH_SIZE:-5000}
+      LOG_RETENTION_MAX_BATCHES: ${LOG_RETENTION_MAX_BATCHES:-400}
+      LOG_RETENTION_MAX_RUN_MS: ${LOG_RETENTION_MAX_RUN_MS:-3300000}
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - '${API_HOST_PORT:-8080}:8080'
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+volumes:
+  postgres_data:
