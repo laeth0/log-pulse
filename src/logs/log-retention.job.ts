@@ -3,8 +3,8 @@ import { Cron } from '@nestjs/schedule';
 import { performance } from 'node:perf_hooks';
 
 import { Clock } from '../common/time/clock';
-import { parseLogRetentionConfiguration } from './config/log-retention.config';
 import { LogsRepository } from './logs.repository';
+import { parseLogRetentionConfiguration } from './validation/log-retention.validation';
 
 const retentionConfiguration = parseLogRetentionConfiguration(process.env);
 

@@ -512,13 +512,12 @@ src/
 ├── config/                  TypeORM data source
 ├── health/                  Database and migration readiness endpoint
 ├── logs/
-│   ├── config/              Retention environment parsing and defaults
 │   ├── dto/
 │   │   ├── request/         HTTP request DTOs
 │   │   └── response/        HTTP response DTOs
 │   ├── entities/            TypeORM log entity
 │   ├── models/              Internal domain and query types
-│   ├── validation/          Zod ingestion, query, and cursor validation
+│   ├── validation/          Zod ingestion, query, cursor, and retention validation
 │   ├── log-retention.job.ts Scheduled retention worker
 │   ├── logs.controller.ts   HTTP boundary
 │   ├── logs.service.ts      Application behavior and response mapping

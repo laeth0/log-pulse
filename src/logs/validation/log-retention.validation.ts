@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const LOG_RETENTION_CONFIGURATION_SCHEMA = z.object({
+const LOG_RETENTION_SCHEMA = z.object({
   cron: z.string().trim().min(1).default('0 0 * * * *'),
   retentionDays: z.coerce.number().int().positive().default(30),
   batchSize: z.coerce.number().int().positive().max(10_000).default(5_000),
@@ -14,13 +14,13 @@ const LOG_RETENTION_CONFIGURATION_SCHEMA = z.object({
 });
 
 export type LogRetentionConfiguration = z.infer<
-  typeof LOG_RETENTION_CONFIGURATION_SCHEMA
+  typeof LOG_RETENTION_SCHEMA
 >;
 
 export function parseLogRetentionConfiguration(
   environment: Readonly<Record<string, string | undefined>>,
 ): LogRetentionConfiguration {
-  return LOG_RETENTION_CONFIGURATION_SCHEMA.parse({
+  return LOG_RETENTION_SCHEMA.parse({
     cron: environment.LOG_RETENTION_CRON,
     retentionDays: environment.LOG_RETENTION_DAYS,
     batchSize: environment.LOG_RETENTION_BATCH_SIZE,
