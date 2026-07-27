@@ -67,9 +67,9 @@ Table logs {
     - `timestamp` is a plain column (not generated) so the client-supplied
       event time is preserved, independent of insert time.
     - CHECK constraints require non-empty service and message values.
-    - The baseline migration currently creates only the primary key. Every
-      secondary index listed above is a candidate pending EXPLAIN (ANALYZE,
-      BUFFERS) and load evidence; the final schema sync occurs after that review.
+    - The baseline migration creates the table and primary key. Subsequent
+      versioned migrations create every secondary index listed above.
+    - Schema synchronization is disabled; migrations are the source of truth.
     - The pgcrypto extension supplies UUID generation on PostgreSQL versions
       where `gen_random_uuid()` is not built in.
     - The pg_trgm extension is installed as a prerequisite for the message

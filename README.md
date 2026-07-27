@@ -373,10 +373,9 @@ keys after confirming the need with production-like query plans.
 | `idx_logs_level_timestamp_id` on `(level, timestamp, id)`     | Level-filtered ranges and ordered pagination                                         |
 | `idx_logs_message_trgm` GIN on `message gin_trgm_ops`         | Case-insensitive substring matching                                                  |
 
-Secondary indexes are created with `CREATE INDEX CONCURRENTLY` so migrations do
-not take a long exclusive table lock on an existing log table. More indexes
-would increase ingestion cost, so the project intentionally avoids speculative
-indexes for every possible filter combination.
+Secondary indexes are created by versioned migrations before the API starts.
+Each additional index increases ingestion cost, so the project intentionally
+avoids speculative indexes for every possible filter combination.
 
 ## Pagination design
 
@@ -414,8 +413,7 @@ Each batch:
 4. Yields to the event loop before continuing.
 
 The job has batch-count and elapsed-time limits, and NestJS prevents overlapping
-runs in the same application instance. Completion details are written as a
-structured log containing the cutoff, deleted count, batch count, and duration.
+runs in the same application instance.
 
 ## Database migrations
 
