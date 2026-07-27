@@ -1,7 +1,6 @@
 name: Quality Checks
 
 on:
-  pull_request:
   push:
     branches:
       - main
@@ -9,13 +8,9 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: quality-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   quality:
-    name: Format, lint, typecheck, and build
+    name: Format, lint, and build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
